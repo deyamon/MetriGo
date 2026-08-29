@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MetriGo — Recharge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --ink: #0A0F1E; --ink-soft: #3D4460; --ink-muted: #8B93B0;
+  --surface: #F5F6FA; --white: #FFFFFF;
+  --accent: #1A56DB; --accent-light: #EEF3FD;
+  --border: rgba(10,15,30,0.09);
+  --success: #0D9970; --danger: #D93025; --nav-h: 64px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); min-height: 100vh; }
+
+.navbar { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px; }
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 18px; height: 18px; fill: white; }
+.nav-logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+.nav-links { display: flex; align-items: center; gap: 4px; margin-left: 40px; }
+.nav-links a { text-decoration: none; font-size: 13px; font-weight: 500; color: var(--ink-soft); padding: 6px 14px; border-radius: 8px; transition: background 0.2s, color 0.2s; }
+.nav-links a:hover { background: var(--surface); color: var(--ink); }
+.nav-links a.active { background: var(--accent-light); color: var(--accent); }
+.nav-right { margin-left: auto; }
+.nav-profile { display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border: 1.5px solid var(--border); border-radius: 40px; background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink-soft); text-decoration: none; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: white; }
+
+.page-header { background: linear-gradient(160deg, #0A0F1E 0%, #111829 55%, #0D1A3A 100%); padding: 48px 40px 56px; position: relative; overflow: hidden; }
+.page-header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(26,86,219,0.18) 0%, transparent 60%); }
+.page-header-content { position: relative; z-index: 1; }
+.header-eyebrow { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: #6EA3F7; margin-bottom: 12px; }
+.page-header h1 { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 10px; }
+.page-header p { font-size: 14px; color: rgba(255,255,255,0.5); }
+
+.main { padding: 40px; max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+/* Card visual */
+.metro-card-visual { background: linear-gradient(135deg, #0A0F1E 0%, #1A56DB 60%, #0D3DB0 100%); border-radius: 20px; padding: 28px; color: white; position: relative; overflow: hidden; min-height: 200px; }
+.metro-card-visual::before { content: ''; position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+.metro-card-visual::after { content: ''; position: absolute; bottom: -20px; left: -20px; width: 120px; height: 120px; background: rgba(255,255,255,0.04); border-radius: 50%; }
+.card-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 32px; position: relative; z-index: 1; }
+.card-logo-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.card-logo-icon svg { width: 16px; height: 16px; fill: white; }
+.card-logo-text { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+.card-balance-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; position: relative; z-index: 1; }
+.card-balance { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 20px; position: relative; z-index: 1; }
+.card-number { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 2px; position: relative; z-index: 1; }
+.card-chip { width: 32px; height: 24px; background: rgba(255,215,0,0.5); border-radius: 4px; position: absolute; bottom: 28px; right: 28px; display: flex; align-items: center; justify-content: center; z-index: 1; }
+
+/* Recharge form */
+.recharge-form { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+.form-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.form-sub { font-size: 13px; color: var(--ink-muted); margin-bottom: 24px; }
+.form-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); margin-bottom: 8px; display: block; }
+.card-input { width: 100%; height: 46px; padding: 0 16px; border: 1.5px solid var(--border); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: var(--surface); outline: none; margin-bottom: 20px; letter-spacing: 2px; transition: border-color 0.2s, box-shadow 0.2s; }
+.card-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(26,86,219,0.08); background: white; }
+.card-input::placeholder { letter-spacing: 0; }
+.amount-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+.amount-btn { height: 46px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink-soft); cursor: pointer; transition: all 0.2s; }
+.amount-btn:hover { border-color: rgba(26,86,219,0.3); background: var(--accent-light); color: var(--accent); }
+.amount-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+.custom-input { width: 100%; height: 46px; padding: 0 16px; border: 1.5px solid var(--border); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: var(--surface); outline: none; margin-bottom: 20px; transition: border-color 0.2s, box-shadow 0.2s; }
+.custom-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(26,86,219,0.08); background: white; }
+.recharge-btn { width: 100%; height: 50px; background: var(--accent); color: white; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.recharge-btn:hover { background: #1347C0; transform: translateY(-1px); }
+
+/* QR Payment section */
+.qr-section { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 28px; grid-column: 1 / -1; }
+.qr-section-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+.qr-payment-layout { display: flex; gap: 32px; align-items: flex-start; }
+.qr-area { flex-shrink: 0; }
+.qr-frame { padding: 16px; background: var(--surface); border-radius: 16px; display: inline-flex; }
+.qr-details { flex: 1; }
+.amount-display { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; color: var(--ink); letter-spacing: -1px; margin-bottom: 4px; }
+.amount-label { font-size: 13px; color: var(--ink-muted); margin-bottom: 24px; }
+.pay-steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+.pay-step { display: flex; align-items: flex-start; gap: 12px; }
+.step-num { width: 24px; height: 24px; background: var(--accent-light); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.step-text { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+.upi-display { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; }
+.upi-val { font-size: 14px; font-weight: 600; color: var(--ink); font-family: monospace; flex: 1; }
+.copy-btn { padding: 5px 14px; background: var(--accent-light); color: var(--accent); border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; }
+.paid-btn { width: 100%; height: 50px; background: var(--success); color: white; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.paid-btn:hover { background: #0b8560; }
+
+/* Transaction history */
+.txn-section { background: white; border: 1px solid var(--border); border-radius: 20px; grid-column: 1 / -1; overflow: hidden; }
+.txn-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.txn-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--ink); }
+.txn-row { padding: 14px 28px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); }
+.txn-row:last-child { border-bottom: none; }
+.txn-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.txn-icon.credit { background: rgba(13,153,112,0.1); color: var(--success); }
+.txn-icon.debit { background: rgba(217,48,37,0.1); color: var(--danger); }
+.txn-desc { flex: 1; }
+.txn-desc-main { font-size: 14px; font-weight: 500; color: var(--ink); }
+.txn-desc-date { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+.txn-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.txn-amount.credit { color: var(--success); }
+.txn-amount.debit { color: var(--danger); }
+
+/* Success toast */
+.toast { position: fixed; bottom: 32px; right: 32px; background: var(--ink); color: white; padding: 14px 20px; border-radius: 14px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; }
+.toast-icon svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 20px; } .nav-links { display: none; }
+  .page-header { padding: 40px 20px 48px; }
+  .main { padding: 20px; grid-template-columns: 1fr; }
+  .qr-payment-layout { flex-direction: column; }
+  .amount-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg></div>
+    <span class="nav-logo-text">MetriGo</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="bookings.html">Bookings</a>
+    <a href="recharge.html" class="active">Recharge</a>
+    <a href="profile.html">Profile</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-profile" href="profile.html">
+      <div class="avatar" id="navInitial">U</div>
+      <span id="navName">Account</span>
+    </a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-content">
+    <div class="header-eyebrow">Smart Card</div>
+    <h1>Recharge Metro Card</h1>
+    <p>Top up your Delhi Metro Smart Card instantly</p>
+  </div>
+</div>
+
+<main class="main">
+  <!-- Card visual -->
+  <div>
+    <div class="metro-card-visual">
+      <div class="card-logo">
+        <div class="card-logo-icon"><svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg></div>
+        <span class="card-logo-text">MetriGo Smart Card</span>
+      </div>
+      <div class="card-balance-label">Available Balance</div>
+      <div class="card-balance" id="cardBalance">₹—</div>
+      <div class="card-number" id="cardNumberDisplay">**** **** **** ****</div>
+      <div class="card-chip"></div>
+    </div>
+
+    <div style="background:white;border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:16px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-muted);margin-bottom:12px;">Quick Stats</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:var(--surface);border-radius:10px;padding:12px;">
+          <div style="font-size:11px;color:var(--ink-muted)">Total Recharged</div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--ink)" id="totalRecharged">₹0</div>
+        </div>
+        <div style="background:var(--surface);border-radius:10px;padding:12px;">
+          <div style="font-size:11px;color:var(--ink-muted)">Trips This Month</div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--ink)" id="tripsCount">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recharge form -->
+  <div class="recharge-form">
+    <div class="form-title">Top Up Card</div>
+    <div class="form-sub">Enter your card number and select amount</div>
+
+    <label class="form-label">Card Number</label>
+    <input class="card-input" id="cardNumber" placeholder="Enter 16-digit card number" maxlength="16" oninput="formatCard(this)">
+
+    <label class="form-label">Select Amount</label>
+    <div class="amount-grid">
+      <button class="amount-btn" onclick="selectAmount(100, this)">₹100</button>
+      <button class="amount-btn" onclick="selectAmount(200, this)">₹200</button>
+      <button class="amount-btn" onclick="selectAmount(500, this)">₹500</button>
+      <button class="amount-btn" onclick="selectAmount(1000, this)">₹1000</button>
+    </div>
+
+    <label class="form-label">Or Enter Custom Amount</label>
+    <input class="custom-input" id="customAmount" type="number" placeholder="₹ Enter amount (min ₹50)" min="50" max="5000" oninput="customAmountChanged()">
+
+    <button class="recharge-btn" onclick="proceedRecharge()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Proceed to Pay
+    </button>
+  </div>
+
+  <!-- QR Payment -->
+  <div class="qr-section" id="qrSection" style="display:none">
+    <div class="qr-section-title">Complete Payment</div>
+    <div class="qr-payment-layout">
+      <div class="qr-area">
+        <div class="qr-frame"><div id="qrCode"></div></div>
+        <div style="text-align:center;font-size:12px;color:var(--ink-muted);margin-top:12px;">Scan with any UPI app</div>
+      </div>
+      <div class="qr-details">
+        <div class="amount-display" id="payAmountDisplay">₹0</div>
+        <div class="amount-label">Total recharge amount</div>
+        <div class="pay-steps">
+          <div class="pay-step"><div class="step-num">1</div><div class="step-text">Open PhonePe, GPay, Paytm, or any UPI app</div></div>
+          <div class="pay-step"><div class="step-num">2</div><div class="step-text">Scan the QR code or use the UPI ID below</div></div>
+          <div class="pay-step"><div class="step-num">3</div><div class="step-text">Enter the exact amount and complete payment</div></div>
+          <div class="pay-step"><div class="step-num">4</div><div class="step-text">Click "I've Paid" to confirm your recharge</div></div>
+        </div>
+        <div class="upi-display">
+          <span class="upi-val">metrigocard@upi</span>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('metrigocard@upi');showToast('UPI ID copied!')">Copy</button>
+        </div>
+        <button class="paid-btn" onclick="confirmRecharge()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          I've Paid — Confirm Recharge
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction history -->
+  <div class="txn-section">
+    <div class="txn-header">
+      <div class="txn-title">Transaction History</div>
+    </div>
+    <div id="txnList"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast">
+  <div class="toast-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+  <span id="toastText"></span>
+</div>
+
+<script>
+let selectedAmount = 0;
+
+function formatCard(input) {
+  input.value = input.value.replace(/\D/g,'').substring(0,16);
+  document.getElementById("cardNumberDisplay").textContent = input.value ? input.value.replace(/(.{4})/g,'$1 ').trim() : '**** **** **** ****';
+}
+
+function selectAmount(amount, btn) {
+  selectedAmount = amount;
+  document.querySelectorAll(".amount-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("customAmount").value = "";
+}
+
+function customAmountChanged() {
+  const v = parseInt(document.getElementById("customAmount").value);
+  if (v > 0) {
+    selectedAmount = v;
+    document.querySelectorAll(".amount-btn").forEach(b => b.classList.remove("active"));
+  }
+}
+
+function proceedRecharge() {
+  const card = document.getElementById("cardNumber").value;
+  if (!card || card.length < 12) { showToast("Please enter a valid card number"); return; }
+  if (!selectedAmount || selectedAmount < 50) { showToast("Please select or enter amount (min ₹50)"); return; }
+  generateQR();
+  document.getElementById("qrSection").style.display = "block";
+  document.getElementById("qrSection").scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function generateQR() {
+  const qrContainer = document.getElementById("qrCode");
+  qrContainer.innerHTML = "";
+  document.getElementById("payAmountDisplay").textContent = `₹${selectedAmount.toLocaleString('en-IN')}`;
+  const qrData = `upi://pay?pa=metrigocard@upi&pn=MetriGo+Card&am=${selectedAmount}&tn=Card+Recharge&cu=INR`;
+  try {
+    new QRCode(qrContainer, { text: qrData, width: 180, height: 180, colorDark:"#0A0F1E", colorLight:"#F5F6FA", correctLevel: QRCode.CorrectLevel.H });
+  } catch(e) {
+    qrContainer.innerHTML = `<div style="width:180px;height:180px;background:#e8e9ee;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8B93B0">QR ₹${selectedAmount}</div>`;
+  }
+}
+
+function confirmRecharge() {
+  const data = JSON.parse(localStorage.getItem('metrigoCard') || '{"balance":0,"recharged":0,"trips":4}');
+  data.balance = (data.balance || 0) + selectedAmount;
+  data.recharged = (data.recharged || 0) + selectedAmount;
+  const txns = JSON.parse(localStorage.getItem('metrigoTxns') || '[]');
+  txns.unshift({ type:'credit', desc:'Card Recharge', amount: selectedAmount, date: new Date().toISOString() });
+  localStorage.setItem('metrigoCard', JSON.stringify(data));
+  localStorage.setItem('metrigoTxns', JSON.stringify(txns));
+  document.getElementById("cardBalance").textContent = `₹${data.balance.toLocaleString('en-IN')}`;
+  document.getElementById("totalRecharged").textContent = `₹${data.recharged.toLocaleString('en-IN')}`;
+  document.getElementById("qrSection").style.display = "none";
+  loadTransactions();
+  showToast(`₹${selectedAmount} recharged successfully! 🎉`);
+}
+
+function loadCard() {
+  const data = JSON.parse(localStorage.getItem('metrigoCard') || '{"balance":250,"recharged":500,"trips":4}');
+  document.getElementById("cardBalance").textContent = `₹${data.balance.toLocaleString('en-IN')}`;
+  document.getElementById("totalRecharged").textContent = `₹${data.recharged.toLocaleString('en-IN')}`;
+  document.getElementById("tripsCount").textContent = data.trips || 4;
+}
+
+function loadTransactions() {
+  const txns = JSON.parse(localStorage.getItem('metrigoTxns') || '[]');
+  const defaults = [
+    {type:'debit',desc:'Journey: Rajiv Chowk → AIIMS',amount:40,date:new Date(Date.now()-3600000).toISOString()},
+    {type:'credit',desc:'Card Recharge',amount:500,date:new Date(Date.now()-86400000).toISOString()},
+    {type:'debit',desc:'Journey: New Delhi → Dwarka Sec 21',amount:60,date:new Date(Date.now()-172800000).toISOString()},
+  ];
+  const all = txns.length ? txns : defaults;
+  document.getElementById("txnList").innerHTML = all.map(t => `
+    <div class="txn-row">
+      <div class="txn-icon ${t.type}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          ${t.type==='credit' ? '<polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/>' : '<polyline points="7 13 12 18 17 13"/><line x1="12" y1="6" x2="12" y2="18"/>'}
+        </svg>
+      </div>
+      <div class="txn-desc">
+        <div class="txn-desc-main">${t.desc}</div>
+        <div class="txn-desc-date">${new Date(t.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div class="txn-amount ${t.type}">${t.type==='credit'?'+':'-'}₹${t.amount}</div>
+    </div>`).join('');
+}
+
+let toastT;
+function showToast(msg) {
+  document.getElementById("toastText").textContent = msg;
+  document.getElementById("toast").classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => document.getElementById("toast").classList.remove("show"), 3000);
+}
+
+fetch("http://localhost:8080/profile").then(r=>r.json()).then(d => {
+  if (d.success) { const n = d.data.name||d.data.email.split("@")[0]; document.getElementById("navInitial").textContent = n[0].toUpperCase(); document.getElementById("navName").textContent = n; }
+}).catch(()=>{});
+
+loadCard();
+loadTransactions();
+</script>
+</body>
+</html>

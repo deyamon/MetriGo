@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MetriGo — Live Metro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --ink: #0A0F1E; --ink-soft: #3D4460; --ink-muted: #8B93B0;
+  --surface: #F5F6FA; --white: #FFFFFF;
+  --accent: #1A56DB; --accent-light: #EEF3FD;
+  --border: rgba(10,15,30,0.09);
+  --success: #0D9970; --danger: #D93025; --nav-h: 64px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); min-height: 100vh; }
+
+.navbar { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px; }
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 18px; height: 18px; fill: white; }
+.nav-logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+.nav-links { display: flex; align-items: center; gap: 4px; margin-left: 40px; }
+.nav-links a { text-decoration: none; font-size: 13px; font-weight: 500; color: var(--ink-soft); padding: 6px 14px; border-radius: 8px; transition: background 0.2s, color 0.2s; }
+.nav-links a:hover { background: var(--surface); color: var(--ink); }
+.nav-links a.active { background: var(--accent-light); color: var(--accent); }
+.nav-right { margin-left: auto; }
+.nav-profile { display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border: 1.5px solid var(--border); border-radius: 40px; background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink-soft); text-decoration: none; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: white; }
+
+/* Live indicator */
+.live-bar { background: white; border-bottom: 1px solid var(--border); padding: 10px 40px; display: flex; align-items: center; gap: 20px; }
+.live-indicator { display: flex; align-items: center; gap: 8px; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
+.live-text { font-size: 12px; font-weight: 600; color: var(--success); text-transform: uppercase; letter-spacing: 1px; }
+.last-update { font-size: 12px; color: var(--ink-muted); margin-left: auto; }
+
+.page-layout { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - var(--nav-h) - 41px); }
+
+/* Sidebar */
+.sidebar { background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: 20px 20px 0; }
+.sidebar-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+.line-filter { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.line-chip { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; border: 2px solid transparent; }
+.line-chip.inactive { opacity: 0.4; }
+
+.train-list { flex: 1; overflow-y: auto; padding: 12px; }
+
+.train-item { background: var(--surface); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; border: 1.5px solid transparent; }
+.train-item:hover { background: var(--accent-light); border-color: rgba(26,86,219,0.2); }
+.train-item.active { background: var(--accent-light); border-color: rgba(26,86,219,0.3); }
+.train-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.train-item-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.train-status-badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.status-running { background: rgba(13,153,112,0.1); color: var(--success); }
+.status-delayed { background: rgba(180,83,9,0.1); color: #B45309; }
+.status-halted { background: rgba(217,48,37,0.1); color: var(--danger); }
+.train-item-route { font-size: 12px; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.train-progress-wrap { position: relative; height: 4px; background: var(--border); border-radius: 2px; }
+.train-progress-bar { height: 100%; border-radius: 2px; transition: width 1s ease; }
+.train-item-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--ink-muted); }
+.next-station { display: flex; align-items: center; gap: 4px; }
+.next-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* Map */
+#map { height: 100%; width: 100%; }
+
+/* Detail panel */
+.detail-panel { position: absolute; top: 20px; right: 20px; width: 280px; background: white; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 1000; padding: 20px; display: none; }
+.detail-close { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 6px; background: var(--surface); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); font-size: 16px; }
+.detail-train-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.detail-line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-muted); margin-bottom: 16px; }
+.detail-line-dot { width: 10px; height: 10px; border-radius: 50%; }
+.detail-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.detail-stat { background: var(--surface); border-radius: 10px; padding: 10px; }
+.detail-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); }
+.detail-stat-val { font-size: 14px; font-weight: 700; color: var(--ink); margin-top: 3px; }
+
+@media (max-width: 900px) {
+  .nav-links { display: none; } .navbar { padding: 0 20px; }
+  .live-bar { padding: 10px 20px; }
+  .page-layout { grid-template-columns: 1fr; grid-template-rows: 300px 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); overflow: hidden; }
+  .train-list { display: flex; gap: 8px; overflow-x: auto; padding: 8px 12px; }
+  .train-item { min-width: 200px; margin-bottom: 0; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg></div>
+    <span class="nav-logo-text">MetriGo</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="bookings.html">Bookings</a>
+    <a href="check-status.html">Check Status</a>
+    <a href="live-metro.html" class="active">Live Metro</a>
+    <a href="help.html">Help</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-profile" href="profile.html">
+      <div class="avatar" id="navInitial">U</div>
+      <span id="navName">Account</span>
+    </a>
+  </div>
+</nav>
+
+<div class="live-bar">
+  <div class="live-indicator"><div class="live-dot"></div><span class="live-text">Live</span></div>
+  <span style="font-size:12px;color:var(--ink-soft)">Delhi Metro Real-Time Tracker</span>
+  <span class="last-update" id="lastUpdate">Updating...</span>
+</div>
+
+<div class="page-layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Active Trains</div>
+      <div class="line-filter" id="lineFilter"></div>
+    </div>
+    <div class="train-list" id="trainList"></div>
+  </div>
+
+  <div style="position:relative;">
+    <div id="map"></div>
+    <div class="detail-panel" id="detailPanel">
+      <button class="detail-close" onclick="document.getElementById('detailPanel').style.display='none'">×</button>
+      <div class="detail-train-name" id="dpName">—</div>
+      <div class="detail-line" id="dpLine"><div class="detail-line-dot" id="dpDot"></div><span id="dpLineName">—</span></div>
+      <div class="detail-stat-grid">
+        <div class="detail-stat"><div class="detail-stat-label">Speed</div><div class="detail-stat-val" id="dpSpeed">—</div></div>
+        <div class="detail-stat"><div class="detail-stat-label">Status</div><div class="detail-stat-val" id="dpStatus">—</div></div>
+        <div class="detail-stat"><div class="detail-stat-label">Next Stop</div><div class="detail-stat-val" id="dpNext">—</div></div>
+        <div class="detail-stat"><div class="detail-stat-label">ETA</div><div class="detail-stat-val" id="dpETA">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// Metro lines data
+const LINES = [
+  { id:'yellow', name:'Yellow Line', color:'#FFD700', trains:[
+    { id:'Y1', name:'Train Y-101', from:'Samaypur Badli', to:'HUDA City Centre', progress:65, speed:72, status:'running', delay:0,
+      path:[[28.7256,77.1469],[28.6890,77.2147],[28.6330,77.2194],[28.5494,77.2066],[28.4595,77.0266]] },
+    { id:'Y2', name:'Train Y-203', from:'HUDA City Centre', to:'Samaypur Badli', progress:30, speed:68, status:'running', delay:0,
+      path:[[28.4595,77.0266],[28.5494,77.2066],[28.6330,77.2194],[28.7032,77.1762],[28.7256,77.1469]] }
+  ]},
+  { id:'blue', name:'Blue Line', color:'#0082C8', trains:[
+    { id:'B1', name:'Train B-301', from:'Dwarka Sec 21', to:'Vaishali', progress:50, speed:75, status:'running', delay:0,
+      path:[[28.5921,77.0460],[28.6330,77.2194],[28.6266,77.2378],[28.6452,77.3330],[28.6454,77.3479]] },
+    { id:'B2', name:'Train B-405', from:'Vaishali', to:'Dwarka Sec 21', progress:15, speed:0, status:'halted', delay:8,
+      path:[[28.6454,77.3479],[28.6378,77.2962],[28.6266,77.2378],[28.6330,77.2194],[28.5921,77.0460]] }
+  ]},
+  { id:'red', name:'Red Line', color:'#E31B23', trains:[
+    { id:'R1', name:'Train R-101', from:'Rithala', to:'Shaheed Sthal', progress:80, speed:65, status:'running', delay:0,
+      path:[[28.7158,77.1085],[28.7032,77.1762],[28.6920,77.2069],[28.6675,77.2281],[28.6610,77.3100]] },
+    { id:'R2', name:'Train R-202', from:'Shaheed Sthal', to:'Rithala', progress:45, speed:55, status:'delayed', delay:5,
+      path:[[28.6610,77.3100],[28.6675,77.2281],[28.6986,77.1924],[28.7107,77.1507],[28.7158,77.1085]] }
+  ]}
+];
+
+const stationCoords = {
+  "Rajiv Chowk":[28.6330,77.2194],"New Delhi":[28.6431,77.2197],"Kashmere Gate":[28.6675,77.2281],
+  "Vishwavidyalaya":[28.6890,77.2147],"Samaypur Badli":[28.7256,77.1469],"HUDA City Centre":[28.4595,77.0266],
+  "Hauz Khas":[28.5494,77.2066],"Dwarka Sec 21":[28.5921,77.0460],"Vaishali":[28.6454,77.3479],
+  "AIIMS":[28.5672,77.2100],"Indraprastha":[28.6266,77.2562]
+};
+
+// Map init
+const map = L.map('map', { zoomControl:true, minZoom:10, maxZoom:18 }).setView([28.6139,77.2090], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(map);
+
+// Draw line polylines
+LINES.forEach(line => {
+  line.trains.forEach(train => {
+    L.polyline(train.path, { color: line.color, weight: 4, opacity: 0.3 }).addTo(map);
+  });
+});
+
+// Station markers
+const stIcon = L.divIcon({ className:'', html:`<div style="width:8px;height:8px;background:#1A56DB;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`, iconSize:[8,8], iconAnchor:[4,4] });
+Object.entries(stationCoords).forEach(([name, coords]) => {
+  L.marker(coords, {icon:stIcon}).addTo(map).bindPopup(`<b>${name}</b>`);
+});
+
+// Train markers
+const trainMarkers = {};
+LINES.forEach(line => {
+  line.trains.forEach(train => {
+    const pos = interpolatePos(train.path, train.progress/100);
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:16px;height:16px;background:${line.color};border:3px solid white;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.3);transform:rotate(-45deg)"></div>`,
+      iconSize:[16,16], iconAnchor:[8,8]
+    });
+    const marker = L.marker(pos, {icon}).addTo(map);
+    marker.bindPopup(`<b>${train.name}</b><br>${train.from} → ${train.to}<br>Status: ${train.status}`);
+    marker.on('click', () => showDetail(train, line));
+    trainMarkers[train.id] = { marker, train, line };
+  });
+});
+
+function interpolatePos(path, t) {
+  if (!path.length) return [28.6139,77.2090];
+  const total = path.length - 1;
+  const idx = Math.min(Math.floor(t * total), total - 1);
+  const frac = (t * total) - idx;
+  const a = path[idx], b = path[Math.min(idx+1, path.length-1)];
+  return [a[0] + (b[0]-a[0])*frac, a[1] + (b[1]-a[1])*frac];
+}
+
+// Build sidebar
+function buildLineFilter() {
+  document.getElementById("lineFilter").innerHTML = LINES.map(l =>
+    `<div class="line-chip" style="background:${l.color}20;color:${l.color};border-color:${l.color}50" onclick="toggleLine('${l.id}',this)">${l.name}</div>`
+  ).join('');
+}
+
+function buildTrainList() {
+  const list = document.getElementById("trainList");
+  list.innerHTML = LINES.flatMap(line => line.trains.map(t => {
+    const statusCls = t.status==='running'?'status-running':t.status==='delayed'?'status-delayed':'status-halted';
+    const statusTxt = t.status==='running'?'Running':t.status==='delayed'?`Delayed ${t.delay}m`:'Halted';
+    const nextIdx = Math.min(Math.floor((t.progress/100) * (t.path.length-1)) + 1, t.path.length-1);
+    return `
+      <div class="train-item" id="item-${t.id}" onclick="focusTrain('${t.id}')">
+        <div class="train-item-top">
+          <div class="train-item-name">${t.name}</div>
+          <div class="train-status-badge ${statusCls}">${statusTxt}</div>
+        </div>
+        <div class="train-item-route">
+          <span style="width:8px;height:8px;border-radius:50%;background:${line.color};display:inline-block;flex-shrink:0"></span>
+          ${t.from} → ${t.to}
+        </div>
+        <div class="train-progress-wrap">
+          <div class="train-progress-bar" id="prog-${t.id}" style="width:${t.progress}%;background:${line.color}"></div>
+        </div>
+        <div class="train-item-bottom">
+          <div class="next-station"><div class="next-dot"></div>Next: Stop ${Math.floor(nextIdx)+1}</div>
+          <span>${t.progress}% journey</span>
+        </div>
+      </div>`;
+  })).join('');
+}
+
+function focusTrain(id) {
+  const { marker, train, line } = trainMarkers[id];
+  map.setView(marker.getLatLng(), 14, { animate:true });
+  marker.openPopup();
+  document.querySelectorAll(".train-item").forEach(el => el.classList.remove("active"));
+  document.getElementById("item-"+id).classList.add("active");
+  showDetail(train, line);
+}
+
+function showDetail(train, line) {
+  const dp = document.getElementById("detailPanel");
+  document.getElementById("dpName").textContent = train.name;
+  document.getElementById("dpDot").style.background = line.color;
+  document.getElementById("dpLineName").textContent = line.name;
+  document.getElementById("dpSpeed").textContent = train.speed > 0 ? `${train.speed} km/h` : 'Stopped';
+  document.getElementById("dpStatus").textContent = train.status.charAt(0).toUpperCase() + train.status.slice(1);
+  document.getElementById("dpStatus").style.color = train.status==='running'?'var(--success)':train.status==='delayed'?'#B45309':'var(--danger)';
+  document.getElementById("dpNext").textContent = train.to;
+  document.getElementById("dpETA").textContent = train.status==='halted' ? `+${train.delay}m` : `~${Math.round((100-train.progress)/10)}m`;
+  dp.style.display = 'block';
+}
+
+// Animate trains
+let animFrame;
+function animateTrains() {
+  LINES.forEach(line => {
+    line.trains.forEach(t => {
+      if (t.status === 'running') {
+        t.progress = Math.min(t.progress + 0.05, 99);
+        if (t.progress >= 99) { const tmp = t.from; t.from = t.to; t.to = tmp; t.progress = 1; t.path.reverse(); }
+        const pos = interpolatePos(t.path, t.progress/100);
+        trainMarkers[t.id].marker.setLatLng(pos);
+        const el = document.getElementById("prog-"+t.id);
+        if (el) el.style.width = t.progress + '%';
+      }
+    });
+  });
+  document.getElementById("lastUpdate").textContent = `Updated: ${new Date().toLocaleTimeString('en-IN')}`;
+  animFrame = requestAnimationFrame(animateTrains);
+}
+
+buildLineFilter();
+buildTrainList();
+animateTrains();
+
+fetch("http://localhost:8080/profile").then(r=>r.json()).then(d=>{
+  if(d.success){const n=d.data.name||d.data.email.split("@")[0];document.getElementById("navInitial").textContent=n[0].toUpperCase();document.getElementById("navName").textContent=n;}
+}).catch(()=>{});
+</script>
+</body>
+</html>

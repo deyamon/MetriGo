@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MetriGo — Create Account</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #0A0F1E;
+  --ink-soft: #3D4460;
+  --ink-muted: #8B93B0;
+  --surface: #F5F6FA;
+  --white: #FFFFFF;
+  --accent: #1A56DB;
+  --accent-light: #EEF3FD;
+  --border: rgba(10,15,30,0.10);
+  --success: #0D9970;
+  --danger: #D93025;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ink);
+  overflow-x: hidden;
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 0%, rgba(26,86,219,0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 10% 90%, rgba(75,123,245,0.12) 0%, transparent 50%),
+    linear-gradient(160deg, #0A0F1E 0%, #111829 60%, #0D1526 100%);
+}
+
+.metro-lines {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+
+.ml { position: absolute; height: 2px; opacity: 0.10; border-radius: 2px; }
+.ml-1 { background: #FFD700; width: 220px; top: 25%; right: 10%; transform: rotate(6deg); }
+.ml-2 { background: #1A56DB; width: 300px; bottom: 30%; left: -30px; transform: rotate(-5deg); }
+.ml-3 { background: #E63946; width: 160px; top: 60%; right: 20%; transform: rotate(-8deg); }
+
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 480px 1fr;
+}
+
+/* Right side — form */
+.form-side {
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 52px;
+  position: relative;
+}
+
+.form-side::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(26,86,219,0.25) 30%, rgba(26,86,219,0.25) 70%, transparent);
+}
+
+.form-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.form-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.form-sub {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-bottom: 36px;
+}
+
+.form-group { margin-bottom: 18px; }
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.input-wrap { position: relative; }
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.input-wrap:focus-within .input-icon { color: var(--accent); }
+
+.input-wrap input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px 0 44px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+}
+
+.input-wrap input::placeholder { color: var(--ink-muted); }
+
+.input-wrap input:focus {
+  border-color: var(--accent);
+  background: var(--white);
+  box-shadow: 0 0 0 4px rgba(26,86,219,0.08);
+}
+
+/* Password strength */
+.strength-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.strength-bar.visible { opacity: 1; }
+
+.strength-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--border);
+  transition: background 0.3s;
+}
+
+.strength-seg.weak { background: #E63946; }
+.strength-seg.medium { background: #FFD700; }
+.strength-seg.strong { background: #0D9970; }
+
+.strength-label {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  height: 14px;
+}
+
+/* Terms */
+.terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 24px;
+  margin-top: 4px;
+}
+
+.terms input[type="checkbox"] {
+  width: 16px; height: 16px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terms label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.terms a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.btn-submit {
+  width: 100%;
+  height: 52px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-submit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 100%);
+}
+
+.btn-submit:hover {
+  background: #1347C0;
+  box-shadow: 0 8px 24px rgba(26,86,219,0.35);
+  transform: translateY(-1px);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+#message {
+  margin-top: 14px;
+  font-size: 13px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: none;
+  font-weight: 500;
+}
+
+#message.error { background: #FEF1F1; color: var(--danger); border: 1px solid rgba(217,48,37,0.15); }
+#message.success { background: #F0FBF6; color: var(--success); border: 1px solid rgba(13,153,112,0.15); }
+
+.login-row {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 24px;
+}
+
+.login-row a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Left panel */
+.info-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 64px;
+  color: white;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 64px;
+}
+
+.brand-icon {
+  width: 40px; height: 40px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.brand-icon svg { width: 22px; height: 22px; fill: white; }
+
+.brand-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.info-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(36px, 3.5vw, 50px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 24px;
+}
+
+.info-title .outline { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.45); }
+
+.info-sub {
+  font-size: 15px;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.7;
+  max-width: 360px;
+  margin-bottom: 48px;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.feature-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(26,86,219,0.2);
+  border: 1px solid rgba(26,86,219,0.35);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.feature-icon svg { width: 16px; height: 16px; stroke: #6EA3F7; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.feature-text h4 {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 3px;
+}
+
+.feature-text p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.5;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  .info-side { display: none; }
+  .form-side { min-height: 100vh; padding: 48px 28px; }
+  .form-side::after { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="metro-lines">
+  <div class="ml ml-1"></div>
+  <div class="ml ml-2"></div>
+  <div class="ml ml-3"></div>
+</div>
+
+<div class="page">
+
+  <!-- Form side -->
+  <div class="form-side">
+    <p class="form-eyebrow">Get started</p>
+    <h2 class="form-title">Create your account</h2>
+    <p class="form-sub">Join thousands of commuters already using MetriGo.</p>
+
+    <form onsubmit="register(event)" autocomplete="on">
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <div class="input-wrap">
+          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-wrap">
+          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input type="password" id="password" placeholder="At least 8 characters" required autocomplete="new-password" oninput="checkStrength(this.value)">
+        </div>
+        <div class="strength-bar" id="strengthBar">
+          <div class="strength-seg" id="s1"></div>
+          <div class="strength-seg" id="s2"></div>
+          <div class="strength-seg" id="s3"></div>
+          <div class="strength-seg" id="s4"></div>
+        </div>
+        <div class="strength-label" id="strengthLabel"></div>
+      </div>
+
+      <div class="terms">
+        <input type="checkbox" id="agree" required>
+        <label for="agree">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+      </div>
+
+      <button type="submit" class="btn-submit" id="regBtn">
+        <span id="btnText">Create Account</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+
+      <div id="message"></div>
+    </form>
+
+    <div class="login-row">
+      Already have an account? <a href="login.html">Sign in →</a>
+    </div>
+  </div>
+
+  <!-- Info side -->
+  <div class="info-side">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg>
+      </div>
+      <span class="brand-name">MetriGo</span>
+    </div>
+
+    <h2 class="info-title">
+      Your journey,<br>
+      <span class="outline">smarter.</span>
+    </h2>
+
+    <p class="info-sub">
+      MetriGo uses Dijkstra's algorithm to find the fastest routes across Delhi Metro's entire network in milliseconds.
+    </p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="feature-text">
+          <h4>Instant route calculation</h4>
+          <p>Dijkstra's shortest path across all metro lines</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="feature-text">
+          <h4>Live metro map</h4>
+          <p>Interactive map with all 286 stations plotted</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <div class="feature-text">
+          <h4>Smart fare calculator</h4>
+          <p>Accurate fare based on actual distance travelled</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkStrength(val) {
+  const bar = document.getElementById("strengthBar");
+  const label = document.getElementById("strengthLabel");
+  const segs = [document.getElementById("s1"), document.getElementById("s2"), document.getElementById("s3"), document.getElementById("s4")];
+
+  if (!val) {
+    bar.classList.remove("visible");
+    label.textContent = "";
+    segs.forEach(s => s.className = "strength-seg");
+    return;
+  }
+
+  bar.classList.add("visible");
+
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+
+  segs.forEach(s => s.className = "strength-seg");
+
+  const cls = score <= 1 ? "weak" : score <= 2 ? "medium" : "strong";
+  const labels = ["", "Weak", "Weak", "Good", "Strong"];
+  for (let i = 0; i < score; i++) segs[i].classList.add(cls);
+  label.textContent = labels[score] || "";
+  label.style.color = score <= 2 ? "#E63946" : score === 3 ? "#B8860B" : "#0D9970";
+}
+
+function showMessage(text, type) {
+  const msg = document.getElementById("message");
+  msg.textContent = text;
+  msg.className = type;
+  msg.style.display = "block";
+}
+
+function setLoading(loading) {
+  const btn = document.getElementById("regBtn");
+  const txt = document.getElementById("btnText");
+  const spin = document.getElementById("spinner");
+  btn.disabled = loading;
+  txt.textContent = loading ? "Creating account…" : "Create Account";
+  spin.style.display = loading ? "block" : "none";
+}
+
+function register(event) {
+  event.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!email || !password) {
+    showMessage("Please fill in all fields.", "error");
+    return;
+  }
+
+  if (password.length < 6) {
+    showMessage("Password must be at least 6 characters.", "error");
+    return;
+  }
+
+  setLoading(true);
+
+  fetch("http://localhost:8080/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  })
+  .then(r => r.json())
+  .then(data => {
+    setLoading(false);
+    if (data.success) {
+      showMessage("Account created! Redirecting…", "success");
+      setTimeout(() => { window.location.href = "index.html"; }, 900);
+    } else {
+      showMessage(data.message || "Registration failed.", "error");
+    }
+  })
+  .catch(() => {
+    setLoading(false);
+    showMessage("Server error. Please try again.", "error");
+  });
+}
+</script>
+</body>
+</html>

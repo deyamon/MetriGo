@@ -1,0 +1,344 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins', sans-serif;
+}
+
+body{
+    background:#f4f7fb;
+}
+
+
+/* NAVBAR */
+
+.navbar{
+    display:flex;
+    justify-content:space-between;
+    padding:20px 40px;
+    background:rgb(233, 234, 236);
+    box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+.logo{
+    font-weight:600;
+    font-size:20px;
+}
+
+.nav-links a{
+    margin-left:25px;
+    text-decoration:none;
+    color:#333;
+}
+
+/*Metro Wording*/
+.section-title{
+    width: 90%;
+    margin: 0 auto 15px auto;
+}
+
+
+/* HERO */
+
+.hero{
+  height:500px;
+
+  background:
+  linear-gradient(rgba(0, 13, 31, 0.693), rgba(37, 139, 235, 0.4)),
+  url("metro.jpg");
+
+  background-size:cover;
+  background-position:center;
+  position: relative;
+
+  color:white;
+
+  display:flex;
+  align-items:center;
+  justify-content: left;
+
+  padding-left: 80px;
+}
+
+
+.hero h1{
+    font-size:42px;
+}
+
+.partner{
+    margin-top:10px;
+    opacity:0.8;
+}
+
+/* Search Bar */
+.search-bar {
+  position: absolute;
+  left: 20%;
+  bottom: 1%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  background: rgba(255, 255, 255, 0.247);
+  backdrop-filter: blur(10px);
+  padding: 15px;
+  border-radius: 14px;
+
+  width: 80%;
+  max-width: 900px;
+  margin: auto;
+  margin-top: 50px;
+
+  backdrop-filter: blur(8px);
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  outline: none;
+  border-radius: 8px;
+
+  background: #02112793;
+  backdrop-filter: blur(8px);
+  color: #e2e8f0;
+}
+
+.search-bar input::placeholder {
+  color: #ffffff;
+}
+
+.search-bar button {
+  padding: 12px 25px;
+  border: none;
+  border-radius: 10px;
+
+  background: #3b82f6;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.search-bar button:hover {
+  background: #2563eb;
+}
+
+.search-bar input {
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.search-bar input:last-of-type {
+  border-right: none;
+}
+
+.swap-btn {
+  background: #020617;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #38bdf8;
+
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 18px;
+}
+
+.swap-btn:hover {
+  background: #38bdf8;
+  color: #020617;
+  transform: rotate(180deg);
+}
+
+/* 🌫️ Glassy calendar container */
+.flatpickr-calendar {
+  background: rgba(224, 216, 216, 0.442);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  transform: scale(1.1);
+}
+
+/* Header (Month + arrows) */
+.flatpickr-months {
+  background: rgba(227, 224, 224, 0.2);
+  color: #ffffff50;
+}
+
+.flatpickr-current-month {
+  font-weight: 600;
+  font-size: 16px;
+  color: #000000;
+}
+
+/* Days container */
+.flatpickr-day {
+  color: #000000;
+  border-radius: 10px;
+  transition: 0.2s ease;
+}
+
+/* Hover effect */
+.flatpickr-day:hover {
+  background: rgba(40, 125, 222, 0.419);
+}
+
+/* Selected date */
+.flatpickr-day.selected {
+  background: linear-gradient(135deg, #296bb7, #5ab6f8);
+  color: white;
+  box-shadow: 0 0 10px rgba(27, 73, 124, 0.6);
+}
+
+/* Today highlight */
+.flatpickr-day.today {
+  border: 2px solid #4e8cd3d6;
+}
+
+/* Disabled past dates */
+.flatpickr-day.disabled {
+  color: rgba(251, 243, 243, 0.09);
+  cursor: not-allowed;
+}
+
+/* Navigation arrows */
+.flatpickr-prev-month,
+.flatpickr-next-month {
+  fill: #000000;
+}
+
+/* Weekday labels */
+.flatpickr-weekday {
+  background: #001203;
+  color: rgb(255, 255, 255);
+
+}
+
+/* Input field matching */
+#datePicker {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  background: #424F5E;
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  outline: none;
+  transition: 0.3s;
+}
+#datePicker:focus {
+  box-shadow: 0 0 10px rgba(74,144,226,0.4);
+}
+
+/* MAPS */
+#map{
+  height:500px;
+  width:75%;
+  margin:auto;
+  border-radius:15px;
+}
+
+
+/* ACTIONS */
+.hero-content{
+  animation:fadeUp 1s ease;
+}
+
+@keyframes fadeUp{
+
+  from{
+    opacity:0;
+    transform:translateY(40px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+}
+
+
+.actions{
+
+    display:flex;
+    justify-content:center;
+    gap:20px;
+
+    margin-top:-30px;
+    padding:40px;
+
+}
+
+.card{
+
+    background:white;
+    padding:20px 30px;
+    border-radius:15px;
+
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+
+    cursor:pointer;
+}
+
+.card{
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:translateY(-8px);
+  box-shadow:0 15px 30px rgba(0,0,0,0.15);
+}
+
+
+
+/* ANNOUNCEMENTS */
+
+.announcements{
+
+    width: 90%;
+    margin: 40px auto;
+}
+
+.announcement-card{
+
+    background: white;
+    padding: 15px;
+    margin: 15px auto;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    width: 100%;
+    text-align: left;
+
+}
+
+.footer{
+
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    background: white;
+}
+
+.message {
+    margin-top: 10px;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.message.error {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+
+.message.success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}

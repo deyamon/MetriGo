@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MetriGo — Book Tickets</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --ink: #0A0F1E; --ink-soft: #3D4460; --ink-muted: #8B93B0;
+  --surface: #F5F6FA; --white: #FFFFFF;
+  --accent: #1A56DB; --accent-light: #EEF3FD;
+  --border: rgba(10,15,30,0.09);
+  --success: #0D9970; --danger: #D93025; --nav-h: 64px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); min-height: 100vh; }
+
+/* Navbar */
+.navbar { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px; }
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 18px; height: 18px; fill: white; }
+.nav-logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+.nav-links { display: flex; align-items: center; gap: 4px; margin-left: 40px; }
+.nav-links a { text-decoration: none; font-size: 13px; font-weight: 500; color: var(--ink-soft); padding: 6px 14px; border-radius: 8px; transition: background 0.2s, color 0.2s; }
+.nav-links a:hover { background: var(--surface); color: var(--ink); }
+.nav-links a.active { background: var(--accent-light); color: var(--accent); }
+.nav-right { margin-left: auto; }
+.nav-profile { display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border: 1.5px solid var(--border); border-radius: 40px; background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink-soft); text-decoration: none; transition: border-color 0.2s; }
+.nav-profile:hover { border-color: rgba(26,86,219,0.3); color: var(--ink); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: white; }
+
+/* Page header */
+.page-header { background: linear-gradient(160deg, #0A0F1E 0%, #111829 55%, #0D1A3A 100%); padding: 48px 40px 56px; position: relative; overflow: hidden; }
+.page-header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(26,86,219,0.18) 0%, transparent 60%); }
+.page-header-content { position: relative; z-index: 1; }
+.header-eyebrow { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: #6EA3F7; margin-bottom: 12px; }
+.page-header h1 { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 10px; }
+.page-header p { font-size: 14px; color: rgba(255,255,255,0.5); }
+
+/* Filter bar */
+.filter-bar { background: white; border-bottom: 1px solid var(--border); padding: 16px 40px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
+.filter-btn { padding: 7px 18px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--ink-soft); cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+.filter-btn:hover { border-color: rgba(26,86,219,0.3); color: var(--ink); }
+.filter-btn.active { background: var(--accent-light); border-color: rgba(26,86,219,0.3); color: var(--accent); }
+
+/* Main */
+.main { padding: 32px 40px 60px; max-width: 1000px; margin: 0 auto; }
+
+/* Train card */
+.train-card { background: white; border: 1px solid var(--border); border-radius: 20px; margin-bottom: 20px; overflow: hidden; transition: box-shadow 0.2s, transform 0.2s; animation: fadeIn 0.5s ease forwards; opacity: 0; }
+.train-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.07); transform: translateY(-2px); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.train-top { padding: 22px 28px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); }
+.train-icon-wrap { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.train-icon-wrap svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.train-info { flex: 1; }
+.train-name { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: -0.3px; margin-bottom: 4px; }
+.train-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-muted); }
+.duration-badge { padding: 5px 14px; background: var(--surface); border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--ink-muted); border: 1px solid var(--border); white-space: nowrap; }
+.train-classes { padding: 20px 28px; display: flex; gap: 16px; }
+.class-card { flex: 1; padding: 18px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface); position: relative; transition: border-color 0.2s, background 0.2s; }
+.class-card:hover { border-color: rgba(26,86,219,0.3); background: var(--accent-light); }
+.class-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); margin-bottom: 8px; }
+.class-price { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 4px; }
+.class-price span { font-size: 14px; font-weight: 400; color: var(--ink-muted); }
+.class-seats { font-size: 12px; color: var(--success); font-weight: 500; margin-bottom: 14px; display: flex; align-items: center; gap: 5px; }
+.seat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.tatkal-badge { position: absolute; top: 12px; right: 12px; padding: 3px 8px; background: rgba(180,83,9,0.1); border: 1px solid rgba(180,83,9,0.2); border-radius: 6px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #B45309; }
+.book-btn { width: 100%; height: 38px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.book-btn:hover { background: #1347C0; transform: scale(1.02); }
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(10,15,30,0.6); backdrop-filter: blur(8px); z-index: 500; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; padding: 20px; }
+.modal-overlay.active { opacity: 1; visibility: visible; }
+
+/* ===== SEAT SELECTION MODAL ===== */
+.seat-modal { background: white; border-radius: 24px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 32px 80px rgba(0,0,0,0.25); transform: translateY(20px) scale(0.97); transition: transform 0.3s cubic-bezier(0.25,0.8,0.25,1); }
+.modal-overlay.active .seat-modal { transform: translateY(0) scale(1); }
+.modal-header { padding: 24px 28px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: -0.3px; }
+.modal-sub { font-size: 13px; color: var(--ink-muted); margin-top: 3px; }
+.modal-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); font-size: 18px; flex-shrink: 0; transition: background 0.2s; }
+.modal-close:hover { background: #e8e9ee; }
+
+/* Seat legend */
+.seat-legend { display: flex; align-items: center; gap: 20px; padding: 14px 28px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+.legend-box { width: 16px; height: 16px; border-radius: 4px; }
+.legend-box.avail { background: #EEF3FD; border: 1.5px solid #1A56DB; }
+.legend-box.booked { background: #e8e9ee; border: 1.5px solid #c5c8d4; }
+.legend-box.selected { background: var(--accent); border: 1.5px solid var(--accent); }
+.legend-box.ladies { background: #fce8f3; border: 1.5px solid #d63384; }
+
+/* Coach selector */
+.passenger-panel { padding: 16px 28px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.passenger-panel label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.passenger-panel input { width: 82px; height: 40px; border: 1.5px solid var(--border); border-radius: 10px; padding: 0 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--surface); outline: none; }
+.passenger-panel input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
+.time-slot-panel { padding: 16px 28px 0; }
+.time-slot-control { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.time-slot-control label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.time-slot-control select { min-width: 220px; height: 40px; border: 1.5px solid var(--border); border-radius: 10px; padding: 0 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--surface); outline: none; }
+.time-slot-control select:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
+.time-slot-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.smart-chip { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); }
+.smart-chip.warning { background: #FFF3E0; border-color: rgba(180,83,9,0.28); color: #B45309; }
+.smart-chip.low { background: #EAF8F2; border-color: rgba(13,153,112,0.24); color: var(--success); }
+.smart-chip.medium { background: #FFF8D6; border-color: rgba(180,130,0,0.26); color: #9A6B00; }
+.smart-chip.high { background: #FEF1F1; border-color: rgba(217,48,37,0.2); color: var(--danger); }
+.coach-tabs { display: flex; gap: 8px; padding: 16px 28px 0; overflow-x: auto; }
+.coach-tab { padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 500; color: var(--ink-soft); cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+.coach-tab.active { background: var(--accent-light); border-color: rgba(26,86,219,0.3); color: var(--accent); }
+
+/* Seat grid */
+.seat-grid-container { padding: 20px 28px; }
+.compartment-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); margin-bottom: 10px; }
+.seat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.row-num { font-size: 10px; color: var(--ink-muted); width: 16px; text-align: center; flex-shrink: 0; }
+.seat { width: 40px; height: 36px; border-radius: 8px; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.15s; user-select: none; }
+.seat.available { background: #EEF3FD; border-color: rgba(26,86,219,0.4); color: var(--accent); }
+.seat.available:hover { background: var(--accent); color: white; transform: scale(1.1); }
+.seat.booked { background: #e8e9ee; border-color: #c5c8d4; color: #a0a5b8; cursor: not-allowed; }
+.seat.suggested:not(.selected):not(.booked) { box-shadow: 0 0 0 3px rgba(26,86,219,0.28), 0 6px 18px rgba(26,86,219,0.24); border-color: var(--accent); }
+.seat.selected { background: var(--accent); border-color: var(--accent); color: white; transform: scale(1.05); box-shadow: 0 4px 12px rgba(26,86,219,0.35); }
+.seat.ladies { background: #fce8f3; border-color: rgba(214,51,132,0.4); color: #d63384; }
+.seat.ladies:hover { background: #d63384; color: white; transform: scale(1.1); }
+.seat-aisle { width: 20px; }
+.suggest-seats-btn { margin: 0 28px 18px; height: 40px; padding: 0 18px; border: 1.5px solid rgba(26,86,219,0.28); border-radius: 10px; background: var(--accent-light); color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+.suggest-seats-btn:hover { background: rgba(26,86,219,0.14); transform: translateY(-1px); }
+
+/* Modal footer */
+.modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; bottom: 0; background: white; border-radius: 0 0 24px 24px; }
+.seat-summary { font-size: 13px; color: var(--ink-soft); }
+.seat-summary strong { color: var(--ink); font-weight: 600; }
+.proceed-btn { height: 46px; padding: 0 28px; background: var(--accent); color: white; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.proceed-btn:hover { background: #1347C0; transform: translateY(-1px); }
+.proceed-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ===== PAYMENT MODAL ===== */
+.pay-modal {
+  background: white;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 440px;
+
+  max-height: 90vh;        /* 🔥 key fix */
+  overflow-y: auto;        /* 🔥 allows scrolling */
+
+  box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.3s cubic-bezier(0.25,0.8,0.25,1);
+}
+.modal-overlay.active .pay-modal { transform: translateY(0) scale(1); }
+
+.pay-header { background: linear-gradient(135deg, #0A0F1E, #111829); border-radius: 24px 24px 0 0; padding: 28px; text-align: center; position: relative; }
+.pay-amount { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; color: white; letter-spacing: -1px; }
+.pay-amount-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.pay-route-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: rgba(26,86,219,0.2); border: 1px solid rgba(26,86,219,0.4); border-radius: 20px; font-size: 12px; color: #6EA3F7; margin-top: 12px; }
+
+.pay-body { padding: 28px; }
+.qr-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+.qr-wrap > div { border: 3px solid white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); overflow: hidden; }
+
+.pay-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.pay-info-item { background: var(--surface); border-radius: 12px; padding: 12px; }
+.pay-info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); margin-bottom: 4px; }
+.pay-info-val { font-size: 13px; font-weight: 600; color: var(--ink); }
+
+.pay-methods { display: flex; gap: 8px; margin-bottom: 20px; }
+.pay-method { flex: 1; padding: 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface); text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--ink-soft); transition: all 0.2s; }
+.pay-method.active { border-color: rgba(26,86,219,0.4); background: var(--accent-light); color: var(--accent); }
+.pay-method:hover { border-color: rgba(26,86,219,0.3); }
+
+.pay-upi { margin-bottom: 20px; }
+.upi-label { font-size: 12px; color: var(--ink-muted); margin-bottom: 8px; }
+.upi-id-box { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-family: monospace; color: var(--ink); }
+.copy-btn { margin-left: auto; padding: 4px 10px; background: var(--accent-light); color: var(--accent); border: none; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; flex-shrink: 0; transition: background 0.2s; }
+.copy-btn:hover { background: rgba(26,86,219,0.2); }
+
+.confirm-pay-btn { width: 100%; height: 52px; background: var(--success); color: white; border: none; border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.confirm-pay-btn:hover { background: #0b8560; transform: translateY(-1px); }
+
+/* Cancel booking button — sits below Confirm & Pay */
+.cancel-pay-btn { width: 100%; height: 44px; background: transparent; color: var(--danger); border: 1.5px solid rgba(217,48,37,0.3); border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 10px; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cancel-pay-btn:hover { background: rgba(217,48,37,0.07); border-color: rgba(217,48,37,0.6); }
+
+/* ===== SUCCESS MODAL ===== */
+.success-modal { background: white; border-radius: 24px; width: 100%; max-width: 400px; box-shadow: 0 32px 80px rgba(0,0,0,0.25); text-align: center; padding: 40px 32px; transform: translateY(20px) scale(0.97); transition: transform 0.3s cubic-bezier(0.25,0.8,0.25,1); }
+.modal-overlay.active .success-modal { transform: translateY(0) scale(1); }
+.success-icon { width: 80px; height: 80px; background: linear-gradient(135deg, #0D9970, #0b7a5a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+.success-icon svg { width: 36px; height: 36px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.success-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+.success-sub { font-size: 14px; color: var(--ink-muted); margin-bottom: 28px; line-height: 1.6; }
+.pnr-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 24px; }
+.pnr-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); margin-bottom: 6px; }
+.pnr-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: 2px; }
+.ticket-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; text-align: left; }
+.ticket-detail { background: var(--surface); border-radius: 10px; padding: 10px 14px; }
+.ticket-detail-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); }
+.ticket-detail-val { font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 2px; }
+.done-btn { width: 100%; height: 48px; background: var(--accent); color: white; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+.done-btn:hover { background: #1347C0; }
+
+/* Toast */
+.toast { position: fixed; bottom: 32px; right: 32px; background: var(--ink); color: white; padding: 14px 20px; border-radius: 14px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; transform: translateY(80px); opacity: 0; transition: transform 0.3s cubic-bezier(0.25,0.8,0.25,1), opacity 0.3s; z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-width: 340px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.toast-icon svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 20px; }
+  .nav-links { display: none; }
+  .page-header { padding: 40px 20px 48px; }
+  .filter-bar { padding: 12px 20px; }
+  .main { padding: 24px 20px 48px; }
+  .train-classes { flex-direction: column; }
+  .train-top { flex-wrap: wrap; gap: 12px; }
+  .seat-modal { max-height: 85vh; }
+  .seat { width: 34px; height: 30px; font-size: 9px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg></div>
+    <span class="nav-logo-text">MetriGo</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="bookings.html" class="active">Bookings</a>
+    <a href="check-status.html">Check Status</a>
+    <a href="live-metro.html">Live Metro</a>
+    <a href="help.html">Help</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-profile" href="profile.html">
+      <div class="avatar" id="navInitial">U</div>
+      <span id="navName">Account</span>
+    </a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-content">
+    <div class="header-eyebrow">Metro Tickets</div>
+    <h1>Book Your Journey</h1>
+    <p>Select a train · Choose your seat · Pay instantly</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterTrains('all', this)">All Trains</button>
+  <button class="filter-btn" onclick="filterTrains('delhi-kanpur', this)">Delhi → Kanpur</button>
+  <button class="filter-btn" onclick="filterTrains('delhi-mumbai', this)">Delhi → Mumbai</button>
+  <button class="filter-btn" onclick="filterTrains('tatkal', this)">Tatkal Only</button>
+</div>
+
+<main class="main" id="trainList"></main>
+
+<!-- ============ SEAT SELECTION MODAL ============ -->
+<div class="modal-overlay" id="seatOverlay">
+  <div class="seat-modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="seatModalTitle">Select Your Seat</div>
+        <div class="modal-sub" id="seatModalSub">Choose from available seats below</div>
+      </div>
+      <button class="modal-close" onclick="closeSeatModal()">×</button>
+    </div>
+
+    <div class="seat-legend">
+      <div class="legend-item"><div class="legend-box avail"></div> Available</div>
+      <div class="legend-item"><div class="legend-box booked"></div> Booked</div>
+      <div class="legend-item"><div class="legend-box selected"></div> Selected</div>
+      <div class="legend-item"><div class="legend-box ladies"></div> Ladies</div>
+    </div>
+
+    <div class="passenger-panel">
+      <label for="passengerCount">Number of Passengers</label>
+      <input type="number" id="passengerCount" min="1" max="6" value="1" onchange="updatePassengerCount()" oninput="updatePassengerCount()">
+    </div>
+
+    <div class="time-slot-panel">
+      <div class="time-slot-control">
+        <label for="timeSlot">Select Travel Time</label>
+        <select id="timeSlot" onchange="updateTimeSlotInfo()">
+          <option value="early_morning">Early Morning (6-8 AM) 💰 Cheapest</option>
+          <option value="morning_peak">Morning Peak (8-11 AM)</option>
+          <option value="afternoon">Afternoon (11-5 PM)</option>
+          <option value="evening_peak">Evening Peak (5-9 PM)</option>
+          <option value="night">Night (9-11 PM)</option>
+        </select>
+      </div>
+      <div class="time-slot-meta">
+        <span class="smart-chip" id="bestTimeHint">Best time to travel: Early Morning 💰</span>
+        <span class="smart-chip" id="peakWarning">Avoid peak hours if possible</span>
+        <span class="smart-chip low" id="crowdLevel">Crowd Level: Low</span>
+      </div>
+    </div>
+
+    <div class="coach-tabs" id="coachTabs"></div>
+
+    <div class="seat-grid-container" id="seatGrid"></div>
+    <button class="suggest-seats-btn" id="suggestSeatsBtn" onclick="suggestBetterSeats()">✨ Suggest Better Seats</button>
+
+    <div class="modal-footer">
+      <div class="seat-summary" id="seatSummary">No seat selected</div>
+      <button class="proceed-btn" id="proceedBtn" onclick="openPayment()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap: "round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Proceed to Pay
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAYMENT MODAL ============ -->
+<div class="modal-overlay" id="payOverlay">
+  <div class="pay-modal">
+    <div class="pay-header">
+      <div class="pay-amount-label">Total Amount</div>
+      <div class="pay-amount" id="payAmount">₹0</div>
+      <div class="pay-route-badge" id="payRoute">— → —</div>
+    </div>
+    <div class="pay-body">
+      <div class="pay-info-grid">
+        <div class="pay-info-item">
+          <div class="pay-info-label">Train</div>
+          <div class="pay-info-val" id="payTrain">—</div>
+        </div>
+        <div class="pay-info-item">
+          <div class="pay-info-label">Seat</div>
+          <div class="pay-info-val" id="paySeat">—</div>
+        </div>
+        <div class="pay-info-item">
+          <div class="pay-info-label">Class</div>
+          <div class="pay-info-val" id="payClass">—</div>
+        </div>
+        <div class="pay-info-item">
+          <div class="pay-info-label">Date</div>
+          <div class="pay-info-val" id="payDate">—</div>
+        </div>
+      </div>
+
+      <div class="pay-methods">
+        <div class="pay-method active" onclick="switchMethod('upi', this)">📱 UPI / QR</div>
+        <div class="pay-method" onclick="switchMethod('card', this)">💳 Card</div>
+        <div class="pay-method" onclick="switchMethod('wallet', this)">👝 Wallet</div>
+      </div>
+
+      <div id="upiSection">
+        <div class="qr-wrap"><div id="qrCode"></div></div>
+        <div class="pay-upi">
+          <div class="upi-label">Or pay using UPI ID</div>
+          <div class="upi-id-box">
+            <span>metrigotickets@upi</span>
+            <button class="copy-btn" onclick="copyUPI()">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cardSection" style="display:none; margin-bottom:20px;">
+        <div style="background:var(--surface);border-radius:12px;padding:16px;">
+          <div style="font-size:12px;color:var(--ink-muted);margin-bottom:12px;">Card details (demo only)</div>
+          <input style="width:100%;height:42px;border:1.5px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;outline:none;margin-bottom:8px;" placeholder="Card number">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <input style="height:42px;border:1.5px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;outline:none;" placeholder="MM/YY">
+            <input style="height:42px;border:1.5px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;outline:none;" placeholder="CVV">
+          </div>
+        </div>
+      </div>
+
+      <div id="walletSection" style="display:none; margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div onclick="this.style.background='var(--accent-light)'" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;">📱 Paytm</div>
+          <div onclick="this.style.background='var(--accent-light)'" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;">💚 PhonePe</div>
+          <div onclick="this.style.background='var(--accent-light)'" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;">📘 GPay</div>
+          <div onclick="this.style.background='var(--accent-light)'" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;">🅰️ Amazon Pay</div>
+        </div>
+      </div>
+
+      <button class="confirm-pay-btn" onclick="confirmPayment()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Confirm & Pay
+      </button>
+
+      <!-- Cancel booking — closes modal, resets state, nothing is saved -->
+      <button class="cancel-pay-btn" onclick="cancelBooking()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancel Booking
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SUCCESS MODAL ============ -->
+<div class="modal-overlay" id="successOverlay">
+  <div class="success-modal">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">Booking Confirmed!</div>
+    <div class="success-sub">Your ticket has been booked successfully. Show the PNR at the station.</div>
+    <div class="pnr-box">
+      <div class="pnr-label">PNR Number</div>
+      <div class="pnr-num" id="successPNR">—</div>
+    </div>
+    <div class="ticket-details" id="ticketDetails"></div>
+    <button class="done-btn" onclick="closeAll()">Done</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+  <span id="toastText"></span>
+</div>
+
+<script>
+const trains = [
+  { name:"Shatabdi Express", from:"New Delhi", to:"Kanpur", duration:"5h 30m", route:"delhi-kanpur",
+    classes:[{type:"CC",price:1200,seats:45,tatkal:true},{type:"EC",price:2200,seats:12,tatkal:true}] },
+  { name:"Vande Bharat Express", from:"New Delhi", to:"Kanpur", duration:"4h 10m", route:"delhi-kanpur",
+    classes:[{type:"CC",price:1500,seats:60,tatkal:false},{type:"EC",price:2800,seats:5,tatkal:true}] },
+  { name:"Rajdhani Express", from:"Delhi", to:"Mumbai", duration:"16h 00m", route:"delhi-mumbai",
+    classes:[{type:"3A",price:2500,seats:20,tatkal:true},{type:"2A",price:3500,seats:10,tatkal:true}] },
+  { name:"Duronto Express", from:"Delhi", to:"Mumbai", duration:"14h 30m", route:"delhi-mumbai",
+    classes:[{type:"SL",price:900,seats:80,tatkal:false},{type:"3A",price:2200,seats:30,tatkal:true}] }
+];
+
+// Current booking state
+let currentBooking = {};
+let selectedSeats = [];
+let suggestedSeats = [];
+let passengerCount = 1;
+let currentCoach = 'C1';
+let qrInstance = null;
+
+// ---- RENDER TRAINS ----
+function render(list) {
+  const c = document.getElementById("trainList");
+  c.innerHTML = "";
+  if (!list.length) { c.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--ink-muted)">No trains found.</div>`; return; }
+  list.forEach((train, i) => {
+    const card = document.createElement("div");
+    card.className = "train-card";
+    card.style.animationDelay = (i * 0.08) + "s";
+    card.innerHTML = `
+      <div class="train-top">
+        <div class="train-icon-wrap"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg></div>
+        <div class="train-info">
+          <div class="train-name">${train.name}</div>
+          <div class="train-meta"><span>${train.from}</span><span>→</span><span>${train.to}</span></div>
+        </div>
+        <div class="duration-badge">⏱ ${train.duration}</div>
+      </div>
+      <div class="train-classes">
+        ${train.classes.map(c => `
+          <div class="class-card">
+            ${c.tatkal ? '<div class="tatkal-badge">Tatkal</div>' : ""}
+            <div class="class-type">${c.type} Class</div>
+            <div class="class-price">₹${c.price.toLocaleString("en-IN")}<span> / seat</span></div>
+            <div class="class-seats"><div class="seat-dot"></div>${c.seats} seats available</div>
+            <button class="book-btn" onclick="openSeatModal('${train.name}','${train.from}','${train.to}','${c.type}',${c.price})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+              Select Seat
+            </button>
+          </div>`).join("")}
+      </div>`;
+    c.appendChild(card);
+  });
+}
+
+function filterTrains(type, btn) {
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  let filtered = trains;
+  if (type === "tatkal") filtered = trains.filter(t => t.classes.some(c => c.tatkal));
+  else if (type !== "all") filtered = trains.filter(t => t.route === type);
+  render(filtered);
+}
+
+// ---- SEAT MODAL ----
+function openSeatModal(trainName, from, to, cls, price, prefFrom, prefTo) {
+  currentBooking = { trainName, from: prefFrom||from, to: prefTo||to, cls, basePrice: price, price };
+  selectedSeats = [];
+  suggestedSeats = [];
+  passengerCount = 1;
+  document.getElementById("passengerCount").value = passengerCount;
+  document.getElementById("timeSlot").value = getCheapestSlot();
+  document.getElementById("seatModalTitle").textContent = `Select Seats — ${cls} Class`;
+  document.getElementById("seatModalSub").textContent = `${trainName} · ${currentBooking.from} → ${currentBooking.to}`;
+  document.getElementById("proceedBtn").disabled = true;
+  updateTimeSlotInfo();
+  updateSeatSummary();
+  buildCoachTabs();
+  renderSeatGrid('C1');
+  document.getElementById("seatOverlay").classList.add("active");
+}
+
+function closeSeatModal() {
+  document.getElementById("seatOverlay").classList.remove("active");
+}
+
+function buildCoachTabs() {
+  const coaches = ['C1','C2','C3','C4','C5'];
+  const tabs = document.getElementById("coachTabs");
+  tabs.innerHTML = coaches.map(c => `<button class="coach-tab ${c==='C1'?'active':''}" onclick="switchCoach('${c}', this)">${c}</button>`).join('');
+  currentCoach = 'C1';
+}
+
+function switchCoach(coach, btn) {
+  currentCoach = coach;
+  suggestedSeats = [];
+  document.querySelectorAll(".coach-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderSeatGrid(coach);
+}
+
+function updatePassengerCount() {
+  const input = document.getElementById("passengerCount");
+  passengerCount = Math.min(6, Math.max(1, parseInt(input.value, 10) || 1));
+  input.value = passengerCount;
+
+  while (selectedSeats.length > passengerCount) {
+    const removedSeat = selectedSeats.pop();
+    restoreSeatClass(removedSeat);
+  }
+
+  updateSeatSummary();
+}
+
+function getCheapestSlot() {
+  return 'early_morning';
+}
+
+function getCrowdLevel(timeSlot) {
+  if (timeSlot === 'morning_peak') return 'High';
+  if (timeSlot === 'afternoon') return 'Medium';
+  if (timeSlot === 'evening_peak') return 'Very High';
+  return 'Low';
+}
+
+function getTimeSlotPrice(baseFare, timeSlot) {
+  let multiplier = 1;
+
+  if (timeSlot === 'morning_peak') multiplier = 1.3;
+  else if (timeSlot === 'evening_peak') multiplier = 1.4;
+  else if (timeSlot === 'afternoon') multiplier = 0.9;
+  else if (timeSlot === 'early_morning') multiplier = 0.8;
+
+  return Math.round(baseFare * multiplier);
+}
+
+function updateTimeSlotInfo() {
+  const timeSlot = document.getElementById("timeSlot").value;
+  currentBooking.timeSlot = timeSlot;
+
+  const peakWarning = document.getElementById("peakWarning");
+  const crowdLevel = document.getElementById("crowdLevel");
+  const bestTimeHint = document.getElementById("bestTimeHint");
+  const crowd = getCrowdLevel(timeSlot);
+
+  bestTimeHint.textContent = 'Best time to travel: Early Morning 💰';
+  peakWarning.textContent = (timeSlot === 'morning_peak' || timeSlot === 'evening_peak')
+    ? '🔥 Peak hours – higher fare & crowd'
+    : 'Avoid peak hours if possible';
+  peakWarning.className = `smart-chip${timeSlot === 'morning_peak' || timeSlot === 'evening_peak' ? ' warning' : ''}`;
+
+  crowdLevel.textContent = `Crowd Level: ${crowd}`;
+  crowdLevel.className = `smart-chip ${crowd === 'Low' ? 'low' : crowd === 'Medium' ? 'medium' : 'high'}`;
+
+  updateSeatSummary();
+}
+
+// Generate deterministic "booked" seats
+function isBooked(coach, row, col) {
+  const seed = coach.charCodeAt(1) + row * 3 + col * 7;
+  return (seed % 5 === 0);
+}
+
+function isLadies(row) { return row <= 2; }
+
+function renderSeatGrid(coach) {
+  const grid = document.getElementById("seatGrid");
+  const rows = 12;
+  let html = `<p class="compartment-label">Coach ${coach} — Seat Layout (Lower · Middle · Upper)</p>`;
+  for (let r = 1; r <= rows; r++) {
+    html += `<div class="seat-row"><span class="row-num">${r}</span>`;
+    for (let c = 1; c <= 3; c++) {
+      const booked = isBooked(coach, r, c);
+      const ladies = isLadies(r) && c === 1;
+      const seatId = `${coach}-${r}${String.fromCharCode(64+c)}`;
+      const cls = selectedSeats.includes(seatId) ? 'selected' : (booked ? 'booked' : (ladies ? 'ladies' : 'available'));
+      const suggested = suggestedSeats.includes(seatId) && cls !== 'booked' ? ' suggested' : '';
+      const label = ['L','M','U'][c-1];
+      html += `<div class="seat ${cls}${suggested}" id="seat-${seatId}" onclick="selectSeat('${seatId}','${cls}')">${r}${label}</div>`;
+    }
+    html += `<div class="seat-aisle"></div>`;
+    for (let c = 4; c <= 6; c++) {
+      const booked = isBooked(coach, r, c);
+      const seatId = `${coach}-${r}${String.fromCharCode(64+c)}`;
+      const cls = selectedSeats.includes(seatId) ? 'selected' : (booked ? 'booked' : 'available');
+      const suggested = suggestedSeats.includes(seatId) && cls !== 'booked' ? ' suggested' : '';
+      const labels = ['L','M','U','SL'];
+      html += `<div class="seat ${cls}${suggested}" id="seat-${seatId}" onclick="selectSeat('${seatId}','${cls}')">${r}${labels[c-4]||c}</div>`;
+    }
+    html += `</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function toVisibleSuggestedSeat(seatId) {
+  const parts = String(seatId).split('-');
+  const row = parseInt(parts[0], 10);
+  const seat = parseInt(parts[1], 10);
+
+  if (!row || !seat || seat < 1 || seat > 4) return null;
+
+  return `${currentCoach}-${row}${String.fromCharCode(64 + seat)}`;
+}
+
+function clearSuggestedSeatHighlights() {
+  suggestedSeats.forEach(seatId => {
+    const seatEl = document.getElementById('seat-' + seatId);
+    if (seatEl) seatEl.classList.remove('suggested');
+  });
+  suggestedSeats = [];
+}
+
+function highlightSuggestedSeats(seats) {
+  clearSuggestedSeatHighlights();
+
+  suggestedSeats = seats
+    .map(toVisibleSuggestedSeat)
+    .filter(Boolean)
+    .filter(seatId => !selectedSeats.includes(seatId));
+
+  suggestedSeats.forEach(seatId => {
+    const seatEl = document.getElementById('seat-' + seatId);
+    if (seatEl && !seatEl.classList.contains('booked')) {
+      seatEl.classList.add('suggested');
+    }
+  });
+}
+
+function suggestBetterSeats() {
+  const count = selectedSeats.length;
+
+  if (!count) {
+    showToast('Select seats first to compare grouping.');
+    return;
+  }
+
+  fetch('http://localhost:8080/suggest-seats', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ count, trainName: currentBooking.trainName })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success || !Array.isArray(data.suggested) || !data.suggested.length) {
+      showToast('No better grouping available.');
+      return;
+    }
+
+    highlightSuggestedSeats(data.suggested);
+    showToast('✨ Better seat grouping available');
+  })
+  .catch(() => showToast('Unable to suggest seats right now.'));
+}
+
+function selectSeat(seatId, status) {
+  if (status === 'booked') return;
+  const selectedIndex = selectedSeats.indexOf(seatId);
+
+  if (selectedIndex !== -1) {
+    selectedSeats.splice(selectedIndex, 1);
+    restoreSeatClass(seatId);
+    updateSeatSummary();
+    return;
+  }
+
+  if (selectedSeats.length >= passengerCount) {
+    alert(`You can only select ${passengerCount} seats`);
+    return;
+  }
+
+  selectedSeats.push(seatId);
+  const el = document.getElementById('seat-' + seatId);
+  el.classList.remove('available','ladies');
+  el.classList.add('selected');
+  updateSeatSummary();
+}
+
+function restoreSeatClass(seatId) {
+  const el = document.getElementById('seat-' + seatId);
+  if (!el) return;
+
+  const seatPart = seatId.split('-')[1] || '';
+  const row = parseInt(seatPart, 10);
+  el.classList.remove('selected');
+  el.classList.add(isLadies(row) && seatId.endsWith('A') ? 'ladies' : 'available');
+}
+
+function updateSeatSummary() {
+  const timeSlot = document.getElementById("timeSlot").value;
+  const totalPrice = (currentBooking.basePrice || currentBooking.price || 0) * selectedSeats.length;
+  const finalPreviewPrice = getTimeSlotPrice(totalPrice, timeSlot);
+  currentBooking.price = totalPrice;
+  currentBooking.finalPreviewPrice = finalPreviewPrice;
+  currentBooking.timeSlot = timeSlot;
+
+  if (!selectedSeats.length) {
+    document.getElementById("seatSummary").textContent = "No seats selected";
+    document.getElementById("proceedBtn").disabled = true;
+    return;
+  }
+
+  document.getElementById("seatSummary").innerHTML = `Seats: <strong>${selectedSeats.join(', ')}</strong> · ₹${finalPreviewPrice.toLocaleString('en-IN')}`;
+  document.getElementById("proceedBtn").disabled = selectedSeats.length !== passengerCount;
+}
+
+// ---- PAYMENT MODAL ----
+function openPayment() {
+  if (selectedSeats.length !== passengerCount) return;
+  closeSeatModal();
+  currentBooking.seats = [...selectedSeats];
+  currentBooking.seat = selectedSeats[0];
+  currentBooking.passengerCount = passengerCount;
+  currentBooking.timeSlot = document.getElementById("timeSlot").value;
+  const today = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  document.getElementById("payAmount").textContent = `₹${currentBooking.finalPreviewPrice.toLocaleString('en-IN')}`;
+  document.getElementById("payRoute").textContent = `${currentBooking.from} → ${currentBooking.to}`;
+  document.getElementById("payTrain").textContent = currentBooking.trainName;
+  document.getElementById("paySeat").textContent = currentBooking.seats.join(', ');
+  document.getElementById("payClass").textContent = currentBooking.cls + ' Class';
+  document.getElementById("payDate").textContent = today;
+  generateQR();
+  document.getElementById("payOverlay").classList.add("active");
+}
+
+function generateQR() {
+  const qrContainer = document.getElementById("qrCode");
+  qrContainer.innerHTML = "";
+  const qrData = `upi://pay?pa=metrigotickets@upi&pn=MetriGo&am=${currentBooking.finalPreviewPrice}&tn=${encodeURIComponent(currentBooking.trainName + '-' + currentBooking.seats.join(','))}&cu=INR`;
+  try {
+    qrInstance = new QRCode(qrContainer, { text: qrData, width: 180, height: 180, colorDark: "#0A0F1E", colorLight: "#FFFFFF", correctLevel: QRCode.CorrectLevel.H });
+  } catch(e) {
+    qrContainer.innerHTML = `<div style="width:180px;height:180px;background:#f5f6fa;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8B93B0;text-align:center;padding:20px;">QR Code<br>${currentBooking.price}</div>`;
+  }
+}
+
+function switchMethod(method, btn) {
+  document.querySelectorAll(".pay-method").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("upiSection").style.display = method === 'upi' ? 'block' : 'none';
+  document.getElementById("cardSection").style.display = method === 'card' ? 'block' : 'none';
+  document.getElementById("walletSection").style.display = method === 'wallet' ? 'block' : 'none';
+}
+
+function copyUPI() {
+  navigator.clipboard.writeText("metrigotickets@upi").catch(() => {});
+  showToast("UPI ID copied!");
+}
+
+function confirmPayment() {
+  // Disable button immediately to prevent double-submit
+  const confirmBtn = document.querySelector('.confirm-pay-btn');
+  const cancelBtn  = document.querySelector('.cancel-pay-btn');
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Processing…'; }
+  if (cancelBtn)  { cancelBtn.disabled = true; }
+
+  document.getElementById("payOverlay").classList.remove("active");
+
+  // Send booking to server — server generates the hashed PNR (SHA-256 based).
+  // We do NOT generate PNR on the client anymore to ensure uniqueness
+  // and prevent manipulation.
+  fetch('http://localhost:8080/save-booking', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ ...currentBooking, status: 'Confirmed' })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Server returned the server-generated PNR
+      currentBooking.pnr = data.pnr;
+      currentBooking.seats = data.seats || currentBooking.seats;
+      currentBooking.seat = currentBooking.seats[0];
+      currentBooking.price = data.finalPrice || currentBooking.price;
+
+      // Mirror to localStorage so check-status.html can also read it
+      const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
+      bookings.push({ ...currentBooking, bookedAt: new Date().toISOString(), status: 'Confirmed' });
+      localStorage.setItem('metrigoBookings', JSON.stringify(bookings));
+
+      showSuccess(data.pnr);
+    } else {
+      showToast('Booking failed. Please try again.');
+      // Re-enable buttons so user can retry
+      if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Confirm & Pay`; }
+      if (cancelBtn)  { cancelBtn.disabled = false; }
+      document.getElementById("payOverlay").classList.add("active");
+    }
+  })
+  .catch(() => {
+    // Network error — fall back to client-side PNR so the app still works offline
+    const fallbackPNR = 'MG' + Date.now().toString().slice(-8);
+    currentBooking.pnr = fallbackPNR;
+    const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
+    bookings.push({ ...currentBooking, bookedAt: new Date().toISOString(), status: 'Confirmed' });
+    localStorage.setItem('metrigoBookings', JSON.stringify(bookings));
+    showSuccess(fallbackPNR);
+  });
+}
+
+/**
+ * Cancel Booking
+ * Closes the payment modal and resets all booking state.
+ * Nothing is saved to the server or localStorage.
+ */
+function cancelBooking() {
+  // Close payment modal
+  document.getElementById("payOverlay").classList.remove("active");
+
+  selectedSeats.forEach(restoreSeatClass);
+  selectedSeats = [];
+  clearSuggestedSeatHighlights();
+  passengerCount = 1;
+  currentBooking = {};
+
+  // Reset proceed button in seat modal footer
+  document.getElementById("passengerCount").value = passengerCount;
+  document.getElementById("timeSlot").value = getCheapestSlot();
+  updateTimeSlotInfo();
+  document.getElementById("proceedBtn").disabled = true;
+  document.getElementById("seatSummary").textContent = "No seats selected";
+
+  // Re-enable confirm/cancel buttons in case they were disabled
+  const confirmBtn = document.querySelector('.confirm-pay-btn');
+  const cancelBtn  = document.querySelector('.cancel-pay-btn');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Confirm & Pay`;
+  }
+  if (cancelBtn) { cancelBtn.disabled = false; }
+
+  showToast('Booking cancelled. No charge was made.');
+}
+
+function showSuccess(pnr) {
+  document.getElementById("successPNR").textContent = pnr;
+  const today = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  document.getElementById("ticketDetails").innerHTML = `
+    <div class="ticket-detail"><div class="ticket-detail-label">From</div><div class="ticket-detail-val">${currentBooking.from}</div></div>
+    <div class="ticket-detail"><div class="ticket-detail-label">To</div><div class="ticket-detail-val">${currentBooking.to}</div></div>
+    <div class="ticket-detail"><div class="ticket-detail-label">Seats</div><div class="ticket-detail-val">${(currentBooking.seats || []).join(', ')}</div></div>
+    <div class="ticket-detail"><div class="ticket-detail-label">Date</div><div class="ticket-detail-val">${today}</div></div>`;
+  document.getElementById("successOverlay").classList.add("active");
+}
+
+function closeAll() {
+  document.querySelectorAll(".modal-overlay").forEach(o => o.classList.remove("active"));
+}
+
+let toastTimer;
+function showToast(msg) {
+  document.getElementById("toastText").textContent = msg;
+  document.getElementById("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => document.getElementById("toast").classList.remove("show"), 3000);
+}
+
+// Load user info
+fetch("http://localhost:8080/profile").then(r => r.json()).then(d => {
+  if (d.success) {
+    const n = d.data.name || d.data.email.split("@")[0];
+    document.getElementById("navInitial").textContent = n[0].toUpperCase();
+    document.getElementById("navName").textContent = n;
+  }
+}).catch(()=>{});
+
+// Allow opening from route search (via URL params)
+const params = new URLSearchParams(window.location.search);
+if (params.get('from') && params.get('to') && params.get('price')) {
+  openSeatModal('Metro Express', params.get('from'), params.get('to'), 'CC', parseInt(params.get('price')), params.get('from'), params.get('to'));
+}
+
+render(trains);
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+[
+  {
+    "email": "dy@gmail.com",
+    "password": "$2b$10$EQv7sdeElV9mY7gx9pxYSeqQJBVVNd9PGzMu.pONupiGbk0psYXp2",
+    "name": "Diamond Yurembam",
+    "createdAt": "2026-01-15T16:17:25.942Z",
+    "favorites": []
+  },
+  {
+    "email": "admin@metro.com",
+    "password": "81843f24ff4235d18f7b322793809544:b30c718a9678052e38cbc667d40bceb182e8a42eea2a303d5e89356625579f6ecfeadff63b7bae1423c72f2d79214b639375b59081e72caf7b45ad674dd70607",
+    "name": "Lance",
+    "createdAt": "2026-02-23T16:26:20.983Z",
+    "favorites": []
+  },
+  {
+    "email": "dy@metro.com",
+    "password": "$2b$10$Y018uXrBeLARUhmlleUV1.zbOnJ9Pg532MFTr7UpROSckMtzFvLIa",
+    "name": "Deyamon",
+    "createdAt": "2026-04-28T01:59:47.590Z",
+    "favorites": []
+  }
+]

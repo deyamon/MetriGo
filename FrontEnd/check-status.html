@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MetriGo — Check Status</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --ink: #0A0F1E; --ink-soft: #3D4460; --ink-muted: #8B93B0;
+  --surface: #F5F6FA; --white: #FFFFFF;
+  --accent: #1A56DB; --accent-light: #EEF3FD;
+  --border: rgba(10,15,30,0.09);
+  --success: #0D9970; --danger: #D93025; --nav-h: 64px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); min-height: 100vh; }
+
+.navbar { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px; }
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 18px; height: 18px; fill: white; }
+.nav-logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+.nav-links { display: flex; align-items: center; gap: 4px; margin-left: 40px; }
+.nav-links a { text-decoration: none; font-size: 13px; font-weight: 500; color: var(--ink-soft); padding: 6px 14px; border-radius: 8px; transition: background 0.2s, color 0.2s; }
+.nav-links a:hover { background: var(--surface); color: var(--ink); }
+.nav-links a.active { background: var(--accent-light); color: var(--accent); }
+.nav-right { margin-left: auto; }
+.nav-profile { display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border: 1.5px solid var(--border); border-radius: 40px; background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink-soft); text-decoration: none; transition: border-color 0.2s; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: white; }
+
+.page-header { background: linear-gradient(160deg, #0A0F1E 0%, #111829 55%, #0D1A3A 100%); padding: 48px 40px 56px; position: relative; overflow: hidden; }
+.page-header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(26,86,219,0.18) 0%, transparent 60%); }
+.page-header-content { position: relative; z-index: 1; }
+.header-eyebrow { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: #6EA3F7; margin-bottom: 12px; }
+.page-header h1 { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 10px; }
+.page-header p { font-size: 14px; color: rgba(255,255,255,0.5); }
+
+.main { padding: 40px; max-width: 700px; margin: 0 auto; }
+
+/* Search box */
+.search-box { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-bottom: 32px; }
+.search-box h2 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.3px; }
+.search-box p { font-size: 14px; color: var(--ink-muted); margin-bottom: 24px; }
+.input-row { display: flex; gap: 12px; }
+.pnr-input { flex: 1; height: 50px; padding: 0 18px; border: 1.5px solid var(--border); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: 2px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: var(--surface); }
+.pnr-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
+.pnr-input::placeholder { font-weight: 400; letter-spacing: 0; color: var(--ink-muted); }
+.check-btn { height: 50px; padding: 0 28px; background: var(--accent); color: white; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.check-btn:hover { background: #1347C0; transform: translateY(-1px); }
+
+/* Result card */
+.result-card { background: white; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; animation: slideUp 0.4s ease forwards; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.result-header { padding: 20px 28px; background: linear-gradient(135deg, #0A0F1E, #111829); display: flex; align-items: center; justify-content: space-between; }
+.result-pnr { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: white; letter-spacing: 1px; }
+.status-badge { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
+.status-confirmed { background: rgba(13,153,112,0.2); border: 1px solid rgba(13,153,112,0.4); color: #4DD5A6; }
+.status-cancelled { background: rgba(217,48,37,0.2); border: 1px solid rgba(217,48,37,0.4); color: #F47B72; }
+.status-waiting { background: rgba(180,83,9,0.2); border: 1px solid rgba(180,83,9,0.4); color: #FCD34D; }
+
+.result-body { padding: 28px; }
+.route-display { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.route-station { flex: 1; }
+.route-station-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); margin-bottom: 4px; }
+.route-station-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.3px; }
+.route-arrow-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.route-line { flex: 1; height: 2px; background: var(--border); }
+.route-arrow-icon { width: 36px; height: 36px; background: var(--accent-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.route-arrow-icon svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+.info-item { background: var(--surface); border-radius: 12px; padding: 14px; }
+.info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); margin-bottom: 5px; }
+.info-val { font-size: 14px; font-weight: 600; color: var(--ink); }
+
+/* Journey timeline */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: linear-gradient(to bottom, var(--accent), rgba(26,86,219,0.2)); }
+.timeline-item { position: relative; padding-bottom: 20px; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-dot { position: absolute; left: -20px; top: 3px; width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid var(--accent); background: white; }
+.timeline-dot.filled { background: var(--accent); }
+.timeline-station { font-size: 14px; font-weight: 600; color: var(--ink); }
+.timeline-time { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+/* Recent bookings */
+.recent-section { margin-top: 32px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+.booking-row { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 10px; transition: box-shadow 0.2s; cursor: pointer; }
+.booking-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+.booking-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.booking-icon svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.booking-info { flex: 1; }
+.booking-route { font-size: 14px; font-weight: 600; color: var(--ink); }
+.booking-meta { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+.booking-pnr-chip { padding: 4px 12px; background: var(--surface); border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.5px; }
+
+.empty-state { text-align: center; padding: 40px; background: white; border-radius: 16px; border: 1px solid var(--border); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; color: var(--ink-muted); }
+
+.error-box { background: #FEF1F1; border: 1px solid rgba(217,48,37,0.2); border-radius: 14px; padding: 16px 20px; color: var(--danger); font-size: 14px; font-weight: 500; margin-bottom: 24px; display: none; }
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 20px; } .nav-links { display: none; }
+  .page-header { padding: 40px 20px 48px; }
+  .main { padding: 24px 20px; }
+  .input-row { flex-direction: column; }
+  .info-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg></div>
+    <span class="nav-logo-text">MetriGo</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="bookings.html">Bookings</a>
+    <a href="check-status.html" class="active">Check Status</a>
+    <a href="live-metro.html">Live Metro</a>
+    <a href="help.html">Help</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-profile" href="profile.html">
+      <div class="avatar" id="navInitial">U</div>
+      <span id="navName">Account</span>
+    </a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-content">
+    <div class="header-eyebrow">Ticket Enquiry</div>
+    <h1>Check Booking Status</h1>
+    <p>Enter your PNR number to track your ticket</p>
+  </div>
+</div>
+
+<main class="main">
+  <div class="search-box">
+    <h2>PNR Status Check</h2>
+    <p>Enter the 10-digit PNR number you received after booking.</p>
+    <div class="error-box" id="errorBox"></div>
+    <div class="input-row">
+      
+      <input class="pnr-input" id="pnrInput" placeholder="Enter PNR number (e.g. MG3F8A1C2B)" maxlength="12" oninput="this.value=this.value.toUpperCase()">
+      <button class="check-btn" onclick="checkPNR()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Check Status
+      </button>
+    </div>
+  </div>
+
+  <div id="resultArea"></div>
+
+  <div class="recent-section">
+    <div class="section-title">Recent Bookings</div>
+    <div id="recentBookings"></div>
+  </div>
+</main>
+
+<script>
+function loadUserInfo() {
+  fetch("http://localhost:8080/profile").then(r => r.json()).then(d => {
+    if (d.success) {
+      const n = d.data.name || d.data.email.split("@")[0];
+      document.getElementById("navInitial").textContent = n[0].toUpperCase();
+      document.getElementById("navName").textContent = n;
+    }
+  }).catch(()=>{});
+}
+
+function checkPNR() {
+  const pnr = document.getElementById("pnrInput").value.trim();
+  const errorBox = document.getElementById("errorBox");
+  errorBox.style.display = "none";
+
+  if (!pnr || pnr.length < 6) {
+    errorBox.textContent = "Please enter a valid PNR number.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  // Try server first, then localStorage
+  fetch(`http://localhost:8080/check-pnr?pnr=${encodeURIComponent(pnr)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) renderResult(data.booking);
+      else searchLocalStorage(pnr);
+    })
+    .catch(() => searchLocalStorage(pnr));
+}
+
+function searchLocalStorage(pnr) {
+  const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
+  const booking = bookings.find(b => b.pnr === pnr);
+  if (booking) renderResult(booking);
+  else {
+    document.getElementById("errorBox").textContent = "No booking found for this PNR. Please check the number and try again.";
+    document.getElementById("errorBox").style.display = "block";
+    document.getElementById("resultArea").innerHTML = "";
+  }
+}
+
+function renderResult(b) {
+  const statusClass = b.status === 'Confirmed' ? 'status-confirmed' : (b.status === 'Cancelled' ? 'status-cancelled' : 'status-waiting');
+  const bookedDate = b.bookedAt ? new Date(b.bookedAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : 'N/A';
+  document.getElementById("resultArea").innerHTML = `
+    <div class="result-card">
+      <div class="result-header">
+        <div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">PNR Number</div>
+          <div class="result-pnr">${b.pnr}</div>
+        </div>
+        <div class="status-badge ${statusClass}">${b.status || 'Confirmed'}</div>
+      </div>
+      <div class="result-body">
+        <div class="route-display">
+          <div class="route-station">
+            <div class="route-station-label">From</div>
+            <div class="route-station-name">${b.from}</div>
+          </div>
+          <div class="route-arrow-wrap">
+            <div class="route-arrow-icon"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+          </div>
+          <div class="route-station" style="text-align:right">
+            <div class="route-station-label">To</div>
+            <div class="route-station-name">${b.to}</div>
+          </div>
+        </div>
+        <div class="info-grid">
+          <div class="info-item"><div class="info-label">Train</div><div class="info-val">${b.trainName || 'N/A'}</div></div>
+          <div class="info-item"><div class="info-label">Seat</div><div class="info-val">${b.seat || 'N/A'}</div></div>
+          <div class="info-item"><div class="info-label">Class</div><div class="info-val">${b.cls || 'N/A'}</div></div>
+          <div class="info-item"><div class="info-label">Fare Paid</div><div class="info-val">₹${(b.price||0).toLocaleString('en-IN')}</div></div>
+          <div class="info-item"><div class="info-label">Booked On</div><div class="info-val">${bookedDate}</div></div>
+          <div class="info-item"><div class="info-label">Status</div><div class="info-val" style="color:var(--success)">${b.status || 'Confirmed'}</div></div>
+        </div>
+        <div style="padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink-muted);margin-bottom:14px">Journey Details</div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot filled"></div>
+              <div class="timeline-station">${b.from}</div>
+              <div class="timeline-time">Departure</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-station">${b.to}</div>
+              <div class="timeline-time">Arrival</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function loadRecent() {
+  const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
+  const container = document.getElementById("recentBookings");
+  if (!bookings.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🎫</div><div class="empty-text">No recent bookings found. Book a ticket to see it here.</div></div>`;
+    return;
+  }
+  container.innerHTML = [...bookings].reverse().slice(0,5).map(b => `
+    <div class="booking-row" onclick="document.getElementById('pnrInput').value='${b.pnr}';checkPNR()">
+      <div class="booking-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+      <div class="booking-info">
+        <div class="booking-route">${b.from} → ${b.to}</div>
+        <div class="booking-meta">${b.trainName || 'Metro'} · ${b.seat || ''} · ${b.cls || ''} Class</div>
+      </div>
+      <div class="booking-pnr-chip">${b.pnr}</div>
+    </div>`).join('');
+}
+
+loadUserInfo();
+loadRecent();
+
+// Allow deep link with PNR param
+const params = new URLSearchParams(window.location.search);
+if (params.get('pnr')) {
+  document.getElementById("pnrInput").value = params.get('pnr');
+  checkPNR();
+}
+</script>
+</body>
+</html>

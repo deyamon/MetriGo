@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MetriGo — Help & Support</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --ink: #0A0F1E; --ink-soft: #3D4460; --ink-muted: #8B93B0;
+  --surface: #F5F6FA; --white: #FFFFFF;
+  --accent: #1A56DB; --accent-light: #EEF3FD;
+  --border: rgba(10,15,30,0.09);
+  --success: #0D9970; --danger: #D93025; --nav-h: 64px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); min-height: 100vh; }
+
+.navbar { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px; }
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.nav-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 18px; height: 18px; fill: white; }
+.nav-logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; }
+.nav-links { display: flex; align-items: center; gap: 4px; margin-left: 40px; }
+.nav-links a { text-decoration: none; font-size: 13px; font-weight: 500; color: var(--ink-soft); padding: 6px 14px; border-radius: 8px; transition: background 0.2s, color 0.2s; }
+.nav-links a:hover { background: var(--surface); color: var(--ink); }
+.nav-links a.active { background: var(--accent-light); color: var(--accent); }
+.nav-right { margin-left: auto; }
+.nav-profile { display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border: 1.5px solid var(--border); border-radius: 40px; background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink-soft); text-decoration: none; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: white; }
+
+.page-header { background: linear-gradient(160deg, #0A0F1E 0%, #111829 55%, #0D1A3A 100%); padding: 48px 40px 56px; position: relative; overflow: hidden; }
+.page-header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(26,86,219,0.18) 0%, transparent 60%); }
+.page-header-content { position: relative; z-index: 1; }
+.header-eyebrow { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: #6EA3F7; margin-bottom: 12px; }
+.page-header h1 { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 10px; }
+.page-header p { font-size: 14px; color: rgba(255,255,255,0.5); }
+.search-help { margin-top: 24px; position: relative; max-width: 500px; }
+.search-help input { width: 100%; height: 48px; padding: 0 16px 0 44px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+.search-help input::placeholder { color: rgba(255,255,255,0.4); }
+.search-help input:focus { border-color: rgba(26,86,219,0.7); }
+.search-help-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.4); }
+
+.main { padding: 40px; max-width: 900px; margin: 0 auto; }
+
+/* Quick links */
+.quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 40px; }
+.quick-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit; }
+.quick-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: rgba(26,86,219,0.2); }
+.quick-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+.quick-card-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.quick-card-sub { font-size: 11px; color: var(--ink-muted); margin-top: 3px; }
+
+/* FAQ */
+.faq-section { margin-bottom: 40px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 16px; letter-spacing: -0.3px; }
+.faq-item { background: white; border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; overflow: hidden; transition: box-shadow 0.2s; }
+.faq-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.faq-question { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--ink); user-select: none; gap: 12px; }
+.faq-question:hover { background: var(--surface); }
+.faq-icon { width: 24px; height: 24px; border-radius: 6px; background: var(--surface); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, transform 0.2s; }
+.faq-icon svg { width: 12px; height: 12px; stroke: var(--ink-muted); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.faq-item.open .faq-icon { background: var(--accent-light); transform: rotate(45deg); }
+.faq-item.open .faq-icon svg { stroke: var(--accent); }
+.faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s; padding: 0 20px; }
+.faq-item.open .faq-answer { max-height: 300px; padding-bottom: 18px; }
+.faq-answer p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.7; }
+.faq-answer a { color: var(--accent); text-decoration: none; }
+
+/* Contact */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.contact-card { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+.contact-card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+.contact-channels { display: flex; flex-direction: column; gap: 12px; }
+.channel { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--surface); border-radius: 12px; text-decoration: none; color: inherit; transition: background 0.2s; }
+.channel:hover { background: var(--accent-light); }
+.channel-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.channel-text .channel-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.channel-text .channel-info { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+
+/* Contact form */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-muted); margin-bottom: 7px; display: block; }
+.form-control { width: 100%; height: 44px; padding: 0 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: var(--surface); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+.form-control:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
+textarea.form-control { height: 100px; padding: 12px 14px; resize: none; }
+.submit-btn { width: 100%; height: 46px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; margin-top: 4px; }
+.submit-btn:hover { background: #1347C0; }
+
+.msg-box { display: none; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; margin-top: 12px; }
+.msg-box.success { background: #F0FBF6; color: var(--success); border: 1px solid rgba(13,153,112,0.2); }
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 20px; } .nav-links { display: none; }
+  .page-header { padding: 40px 20px 48px; }
+  .main { padding: 20px; }
+  .quick-grid { grid-template-columns: repeat(2, 1fr); }
+  .contact-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-brand" href="index.html">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20h20v-2H2v2zm2-3h16v-2H4v2zM12 3L2 9h20L12 3zm-4 7h8v7H8v-7z"/></svg></div>
+    <span class="nav-logo-text">MetriGo</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="bookings.html">Bookings</a>
+    <a href="check-status.html">Check Status</a>
+    <a href="live-metro.html">Live Metro</a>
+    <a href="help.html" class="active">Help</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-profile" href="profile.html">
+      <div class="avatar" id="navInitial">U</div>
+      <span id="navName">Account</span>
+    </a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-content">
+    <div class="header-eyebrow">Support Center</div>
+    <h1>Help & Support</h1>
+    <p>Find answers, troubleshoot, and get in touch with our team</p>
+    <div class="search-help">
+      <svg class="search-help-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search for help..." id="helpSearch" oninput="searchFAQ(this.value)">
+    </div>
+  </div>
+</div>
+
+<main class="main">
+  <!-- Quick links -->
+  <div class="quick-grid">
+    <a class="quick-card" href="bookings.html">
+      <div class="quick-icon" style="background:#EEF3FD"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+      <div class="quick-card-title">Book Ticket</div>
+      <div class="quick-card-sub">Reserve your seat</div>
+    </a>
+    <a class="quick-card" href="check-status.html">
+      <div class="quick-icon" style="background:#EAF5EC"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D9970" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      <div class="quick-card-title">Check PNR</div>
+      <div class="quick-card-sub">Track your booking</div>
+    </a>
+    <a class="quick-card" href="recharge.html">
+      <div class="quick-icon" style="background:#FEF7E6"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      <div class="quick-card-title">Recharge Card</div>
+      <div class="quick-card-sub">Top up balance</div>
+    </a>
+    <a class="quick-card" href="live-metro.html">
+      <div class="quick-icon" style="background:#FEF1F1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D93025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="quick-card-title">Live Metro</div>
+      <div class="quick-card-sub">Real-time tracking</div>
+    </a>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq-section" id="faqSection">
+    <div class="section-title">Frequently Asked Questions</div>
+    <div id="faqList"></div>
+  </div>
+
+  <!-- Contact -->
+  <div class="contact-grid">
+    <div class="contact-card">
+      <div class="contact-card-title">Get in Touch</div>
+      <div class="contact-channels">
+        <a class="channel" href="tel:1800111265">
+          <div class="channel-icon" style="background:#EAF5EC"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9970" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6 6l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/></svg></div>
+          <div class="channel-text"><div class="channel-name">Helpline</div><div class="channel-info">1800-111-265 (Free, 24/7)</div></div>
+        </a>
+        <a class="channel" href="mailto:support@metrigoapp.in">
+          <div class="channel-icon" style="background:#EEF3FD"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="channel-text"><div class="channel-name">Email Support</div><div class="channel-info">support@metrigoapp.in</div></div>
+        </a>
+        <div class="channel">
+          <div class="channel-icon" style="background:#FEF7E6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="channel-text"><div class="channel-name">Live Chat</div><div class="channel-info">Available 6 AM – 11 PM daily</div></div>
+        </div>
+        <div class="channel">
+          <div class="channel-icon" style="background:#FEF1F1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D93025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="channel-text"><div class="channel-name">Visit Us</div><div class="channel-info">Customer Care, Rajiv Chowk Metro Station</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="contact-card-title">Send a Message</div>
+      <div class="form-group">
+        <label class="form-label">Your Name</label>
+        <input class="form-control" id="cName" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-control" id="cEmail" type="email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <select class="form-control" id="cSubject">
+          <option value="">Select a topic</option>
+          <option>Booking Issue</option>
+          <option>Payment Problem</option>
+          <option>Card Recharge</option>
+          <option>Route Query</option>
+          <option>Refund Request</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message</label>
+        <textarea class="form-control" id="cMessage" placeholder="Describe your issue..."></textarea>
+      </div>
+      <button class="submit-btn" onclick="submitForm()">Send Message</button>
+      <div class="msg-box success" id="formMsg">Your message has been sent! We'll respond within 24 hours.</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const faqs = [
+  { q:"How do I book a metro ticket?", a:"Go to the Bookings page from the navigation. Choose your train, click 'Select Seat' to pick your seat visually, then complete payment via UPI QR code or card. You'll receive a PNR number instantly." },
+  { q:"How do I check my booking status?", a:"Visit the Check Status page and enter your PNR number (format: MG followed by 8 digits). You can also see recent bookings directly on that page." },
+  { q:"How do I recharge my Smart Card?", a:"Go to the Recharge page, enter your 16-digit card number, select an amount (₹50 to ₹5,000), then scan the UPI QR code with any payment app or use the UPI ID metrigocard@upi." },
+  { q:"What is Tatkal booking?", a:"Tatkal is an emergency quota that opens 1 day before travel. It carries a premium surcharge of 10-30% over the base fare. Look for the 'Tatkal' badge on class cards in the Bookings section." },
+  { q:"How does the route finder work?", a:"MetriGo uses Dijkstra's shortest path algorithm, the gold standard for route optimization. It calculates the minimum stops, total distance in km, and accurate fare across all Delhi Metro lines in milliseconds." },
+  { q:"Can I cancel my ticket?", a:"Ticket cancellation can be requested within 2 hours of booking. Go to Check Status, enter your PNR, and you'll find a Cancel option. Refunds are processed within 3-5 business days to the original payment method." },
+  { q:"What fare calculation method is used?", a:"Fare is calculated based on actual distance travelled across the metro network. The base fare starts at ₹10 for up to 2 km, incrementing by distance slabs as per DMRC guidelines." },
+  { q:"How does the Live Metro feature work?", a:"The Live Metro page shows real-time simulated positions of trains across all metro lines. Train positions update every second on the map. Click any train in the sidebar to see its speed, status, and next stop." },
+  { q:"Is my payment data secure?", a:"Yes. MetriGo does not store any card or payment details. All transactions are handled directly by your UPI app or payment provider. We only record the booking confirmation, not payment credentials." },
+  { q:"What to do if my card recharge didn't reflect?", a:"Wait 5–10 minutes for the balance to update. If it still hasn't reflected, contact our helpline at 1800-111-265 with your transaction ID and we'll resolve it within 2 hours." },
+];
+
+let allFaqs = [...faqs];
+
+function renderFAQs(list) {
+  document.getElementById("faqList").innerHTML = list.map((f,i) => `
+    <div class="faq-item" id="faq-${i}">
+      <div class="faq-question" onclick="toggleFAQ(${i})">
+        <span>${f.q}</span>
+        <div class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </div>
+      <div class="faq-answer"><p>${f.a}</p></div>
+    </div>`).join('');
+}
+
+function toggleFAQ(i) {
+  const el = document.getElementById("faq-"+i);
+  const wasOpen = el.classList.contains("open");
+  document.querySelectorAll(".faq-item").forEach(f => f.classList.remove("open"));
+  if (!wasOpen) el.classList.add("open");
+}
+
+function searchFAQ(q) {
+  const lower = q.toLowerCase();
+  const filtered = lower ? faqs.filter(f => f.q.toLowerCase().includes(lower) || f.a.toLowerCase().includes(lower)) : faqs;
+  renderFAQs(filtered);
+  if (!filtered.length) {
+    document.getElementById("faqList").innerHTML = `<div style="text-align:center;padding:32px;background:white;border-radius:14px;border:1px solid var(--border);color:var(--ink-muted);font-size:14px">No results found for "<strong style="color:var(--ink)">${q}</strong>"</div>`;
+  }
+}
+
+function submitForm() {
+  const name = document.getElementById("cName").value.trim();
+  const email = document.getElementById("cEmail").value.trim();
+  const subject = document.getElementById("cSubject").value;
+  const msg = document.getElementById("cMessage").value.trim();
+  if (!name || !email || !subject || !msg) { alert("Please fill all fields."); return; }
+  document.getElementById("formMsg").style.display = "block";
+  document.getElementById("cName").value = "";
+  document.getElementById("cEmail").value = "";
+  document.getElementById("cSubject").value = "";
+  document.getElementById("cMessage").value = "";
+}
+
+fetch("http://localhost:8080/profile").then(r=>r.json()).then(d=>{
+  if(d.success){const n=d.data.name||d.data.email.split("@")[0];document.getElementById("navInitial").textContent=n[0].toUpperCase();document.getElementById("navName").textContent=n;}
+}).catch(()=>{});
+
+renderFAQs(faqs);
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="api.js"></script>
 <meta charset="UTF-8">
 <title>MetriGo — Live Metro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -88,6 +89,79 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
   .train-list { display: flex; gap: 8px; overflow-x: auto; padding: 8px 12px; }
   .train-item { min-width: 200px; margin-bottom: 0; }
 }
+
+
+/* ===== MetriGo Responsive UI Polish ===== */
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 10px 20px !important;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .nav-brand { min-height: 40px; }
+  .nav-right { margin-left: auto; }
+  .nav-profile span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-links {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+  .nav-profile-btn, .nav-profile { min-height: 40px; }
+}
+
+@media (max-width: 600px) {
+  .nav-logo-text { font-size: 17px; }
+  .nav-profile { padding-right: 8px; }
+  .nav-profile span { display: none; }
+  .nav-profile-btn { padding-right: 8px; }
+  .hero, .page-header { padding-left: 20px !important; padding-right: 20px !important; }
+  .page-header h1 { font-size: clamp(28px, 8vw, 34px); }
+  .main { padding-left: 16px !important; padding-right: 16px !important; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .navbar { padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links a { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Accessible, consistent focus treatment */
+:focus-visible { outline: 3px solid rgba(26,86,219,.28); outline-offset: 2px; }
+
+
+@media (max-width: 900px) {
+  .page-layout { height: calc(100dvh - var(--nav-h, 64px) - 41px); min-height: 620px; grid-template-columns: 1fr; grid-template-rows: minmax(250px, 38vh) 1fr; }
+  .sidebar { min-height: 0; }
+  .train-list { min-height: 0; }
+  .detail-panel { max-width: calc(100% - 40px); }
+}
+@media (max-width: 600px) {
+  .live-bar { padding-left: 16px !important; padding-right: 16px !important; gap: 10px; }
+  .last-update { font-size: 10px; }
+  .page-layout { grid-template-rows: minmax(230px, 34vh) 1fr; min-height: 600px; }
+  .sidebar-header { padding: 14px 16px 0; }
+  .train-list { padding: 8px 10px; }
+  .train-item { min-width: 230px; }
+  .detail-panel { top: 10px; right: 10px; left: 10px; width: auto; max-width: none; padding: 16px; }
+  .detail-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 </style>
 </head>
 <body>
@@ -296,7 +370,7 @@ buildLineFilter();
 buildTrainList();
 animateTrains();
 
-fetch("http://localhost:8080/profile").then(r=>r.json()).then(d=>{
+apiFetch("/profile").then(r=>r.json()).then(d=>{
   if(d.success){const n=d.data.name||d.data.email.split("@")[0];document.getElementById("navInitial").textContent=n[0].toUpperCase();document.getElementById("navName").textContent=n;}
 }).catch(()=>{});
 </script>

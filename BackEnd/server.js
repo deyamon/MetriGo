@@ -1,25 +1,321 @@
 const express = require('express');
-const cors = require('cors');
-const { execFile } = require('child_process');
+const { findShortestPath } = require('./routing/dijkstra');
 const fs = require('fs');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');       // password hashing
 const crypto = require('crypto');       // PNR generation (built-in Node module)
 
+// ─────────────────────────────────────────────
+// SECURITY / OBSERVABILITY
+// Lightweight in-memory rate limiting keeps abusive bursts from overwhelming
+// the app. It is intentionally dependency-free; for a multi-instance production
+// deployment this should eventually move to a shared store such as Redis.
+// ─────────────────────────────────────────────
+const REQUEST_TIMEOUT_MS = Number(process.env.API_TIMEOUT_MS) || 15000;
+const GENERAL_RATE_WINDOW_MS = 60 * 1000;
+const GENERAL_RATE_LIMIT = Number(process.env.API_RATE_LIMIT) || 120;
+const AUTH_RATE_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_RATE_LIMIT = Number(process.env.AUTH_RATE_LIMIT) || 10;
+const BOOKING_RATE_LIMIT = Number(process.env.BOOKING_RATE_LIMIT) || 20;
+const ROUTE_RATE_LIMIT = Number(process.env.ROUTE_RATE_LIMIT) || 60;
+const rateBuckets = new Map();
+
+function requestId() {
+    return crypto.randomBytes(8).toString('hex');
+}
+
+function logEvent(level, message, meta = {}) {
+    const entry = {
+        timestamp: new Date().toISOString(),
+        level,
+        message,
+        ...meta
+    };
+    const output = JSON.stringify(entry);
+    if (level === 'error') console.error(output);
+    else if (level === 'warn') console.warn(output);
+    else console.log(output);
+}
+
+function clientKey(req) {
+    return req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+}
+
+function rateLimit({ windowMs, max, keyPrefix = 'general' }) {
+    return (req, res, next) => {
+        const now = Date.now();
+        const key = `${keyPrefix}:${clientKey(req)}`;
+        let bucket = rateBuckets.get(key);
+
+        if (!bucket || now >= bucket.resetAt) {
+            bucket = { count: 0, resetAt: now + windowMs };
+        }
+        bucket.count += 1;
+        rateBuckets.set(key, bucket);
+
+        const remaining = Math.max(0, max - bucket.count);
+        res.setHeader('RateLimit-Limit', String(max));
+        res.setHeader('RateLimit-Remaining', String(remaining));
+        res.setHeader('RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
+
+        if (bucket.count > max) {
+            const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+            res.setHeader('Retry-After', String(retryAfter));
+            logEvent('warn', 'Rate limit exceeded', { requestId: req.id, ip: clientKey(req), path: req.path, keyPrefix });
+            return res.status(429).json({
+                success: false,
+                message: 'Too many requests. Please try again later.',
+                retryAfter
+            });
+        }
+        next();
+    };
+}
+
+// Remove stale rate-limit buckets periodically.
+const rateLimitCleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of rateBuckets) {
+        if (now >= bucket.resetAt) rateBuckets.delete(key);
+    }
+}, 5 * 60 * 1000);
+rateLimitCleanup.unref?.();
+
 const app = express();
-const PORT = 8080;
+const PORT = Number(process.env.PORT) || 8080;
+
+// Baseline security headers. These are intentionally dependency-free so the
+// project remains easy to deploy on Vercel and on a local Node server.
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    if (process.env.NODE_ENV === 'production') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+});
+
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET must be configured in production');
+}
+
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 
 const SALT_ROUNDS = 10; // bcrypt cost factor — higher = slower but more secure
 
-app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+
+// Request IDs make server logs traceable from a browser error report.
+app.use((req, res, next) => {
+    req.id = requestId();
+    res.setHeader('X-Request-ID', req.id);
+    next();
+});
+
+app.use((req, res, next) => {
+    res.on('finish', () => {
+        if (res.statusCode >= 400) {
+            logEvent(res.statusCode >= 500 ? 'error' : 'warn', 'HTTP request completed with error status', {
+                requestId: req.id,
+                method: req.method,
+                path: req.path,
+                status: res.statusCode
+            });
+        }
+    });
+    next();
+});
+
+// Reject requests that spend too long inside the API.
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api') || ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        const timer = setTimeout(() => {
+            if (!res.headersSent) {
+                logEvent('error', 'Request timeout', { requestId: req.id, method: req.method, path: req.path });
+                res.status(504).json({ success: false, message: 'The server took too long to respond. Please try again.' });
+            }
+        }, REQUEST_TIMEOUT_MS);
+        res.once('finish', () => clearTimeout(timer));
+        res.once('close', () => clearTimeout(timer));
+    }
+    next();
+});
+
+// Global API guard. More sensitive endpoints receive tighter limits below.
+app.use((req, res, next) => {
+    const isApiRequest = req.originalUrl.startsWith('/api') || req.path.startsWith('/api');
+    if (!isApiRequest && req.method === 'GET') return next();
+    return rateLimit({ windowMs: GENERAL_RATE_WINDOW_MS, max: GENERAL_RATE_LIMIT })(req, res, next);
+});
+
+
+// ─────────────────────────────────────────────
+// DATA LAYER
+// JSON is still our development datastore for now, but all access goes
+// through these helpers so the booking model can later move to a DBMS
+// without rewriting every route.
+// ─────────────────────────────────────────────
+const DATA_DIR = path.join(__dirname, 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
+const TRAINS_FILE = path.join(DATA_DIR, 'trains.json');
+
+function readJsonArray(file) {
+    if (!fs.existsSync(file)) return [];
+    try {
+        const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error(`Failed to read ${file}:`, error);
+        throw new Error('Data store is unavailable');
+    }
+}
+
+function writeJsonArray(file, data) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const tempFile = `${file}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
+    fs.renameSync(tempFile, file);
+}
+
+function readBookings() {
+    return readJsonArray(BOOKINGS_FILE);
+}
+
+function readTrains() {
+    return readJsonArray(TRAINS_FILE);
+}
+
+function getTrainConfig(trainName, cls) {
+    const train = readTrains().find(t => t.name === trainName);
+    if (!train) return null;
+    const classConfig = train.classes.find(c => c.type === cls);
+    if (!classConfig) return null;
+    return { ...train, classConfig };
+}
+
+function writeBookings(bookings) {
+    writeJsonArray(BOOKINGS_FILE, bookings);
+}
+
+// Normalize old one-seat records and newer multi-seat records to one shape.
+function normalizeBooking(booking) {
+    const seats = Array.isArray(booking.seats)
+        ? booking.seats.map(String).filter(Boolean)
+        : (booking.seat ? [String(booking.seat)] : []);
+
+    return {
+        ...booking,
+        seats,
+        seat: seats[0] || null,
+        travelDate: booking.travelDate || null,
+        status: booking.status || 'Confirmed'
+    };
+}
+
+function normalizeTravelDate(value) {
+    if (!value) return null;
+
+    // Frontend sends YYYY-MM-DD. Reject other ambiguous formats.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+    ) return null;
+
+    return value;
+}
+
+function isPastTravelDate(value) {
+    const normalized = normalizeTravelDate(value);
+    if (!normalized) return true;
+    const today = new Date().toISOString().slice(0, 10);
+    return normalized < today;
+}
+
+function getBookedSeats(bookings, trainName, travelDate, cls = null) {
+    const normalizedDate = normalizeTravelDate(travelDate);
+    if (!normalizedDate) return new Set();
+
+    return new Set(
+        bookings
+            .map(normalizeBooking)
+            .filter(b =>
+                (b.trainName || 'Metro Express') === trainName &&
+                b.travelDate === normalizedDate &&
+                b.status !== 'Cancelled' &&
+                (!cls || (b.cls || 'CC') === cls)
+            )
+            .flatMap(b => b.seats)
+    );
+}
+
+// Seat inventory: physical layout is 5 coaches × 12 rows × 6 seats.
+// Each train/class exposes its configured capacity from data/trains.json.
+const COACHES = ['C1', 'C2', 'C3', 'C4', 'C5'];
+const ROWS_PER_COACH = 12;
+const SEATS_PER_ROW = 6;
+
+function isValidSeatId(seatId) {
+    const match = /^C([1-5])-(\d+)([A-F])$/.exec(String(seatId));
+    if (!match) return false;
+    const row = Number(match[2]);
+    return row >= 1 && row <= ROWS_PER_COACH;
+}
+
+function getPhysicalSeatIds() {
+    const seats = [];
+    for (const coach of COACHES) {
+        for (let row = 1; row <= ROWS_PER_COACH; row++) {
+            for (let col = 0; col < SEATS_PER_ROW; col++) {
+                seats.push(`${coach}-${row}${String.fromCharCode(65 + col)}`);
+            }
+        }
+    }
+    return seats;
+}
+
+function getInventorySeatIds(capacity) {
+    const max = COACHES.length * ROWS_PER_COACH * SEATS_PER_ROW;
+    const count = Math.max(0, Math.min(Number(capacity) || 0, max));
+    return getPhysicalSeatIds().slice(0, count);
+}
+
+// API compatibility layer: frontend uses /api/* in every environment.
+// Existing route handlers remain unchanged while requests are normalized
+// internally to /login, /stations, /bookings, etc.
+app.use((req, res, next) => {
+    if (req.url === '/api' || req.url.startsWith('/api/')) {
+        req.url = req.url.slice(4) || '/';
+    }
+    next();
+});
+
+// Lightweight health endpoint for local/Vercel smoke checks.
+app.get('/health', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, service: 'MetriGo API', status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.use(session({
-    secret: "metro-secret-key",
+    secret: process.env.SESSION_SECRET || "dev-metro-secret-key",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }
+    cookie: {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60 * 1000
+    }
 }));
 
 
@@ -47,24 +343,20 @@ function requireLogin(req, res, next) {
 function buildUserMap(usersArray) {
     const map = {};
     for (const user of usersArray) {
-        map[user.email] = user;
+        const normalized = normalizeEmail(user.email);
+        if (normalized) map[normalized] = user;
     }
     return map;
 }
 
 // Helper: read users.json and return both the array and the hash map
 function readUsers() {
-    const usersFile = path.join(__dirname, 'data', 'users.json');
-    if (!fs.existsSync(usersFile)) return { arr: [], map: {} };
-    const arr = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
-    const map = buildUserMap(arr);
-    return { arr, map };
+    const arr = readJsonArray(USERS_FILE);
+    return { arr, map: buildUserMap(arr) };
 }
 
-// Helper: write users array back to JSON file
 function writeUsers(arr) {
-    const usersFile = path.join(__dirname, 'data', 'users.json');
-    fs.writeFileSync(usersFile, JSON.stringify(arr, null, 2));
+    writeJsonArray(USERS_FILE, arr);
 }
 
 
@@ -81,10 +373,7 @@ function writeUsers(arr) {
 // Example: "MG3F8A1C2B"
 // ─────────────────────────────────────────────
 function generatePNR(email) {
-    const bookingsFile = path.join(__dirname, 'data', 'bookings.json');
-    const existingBookings = fs.existsSync(bookingsFile)
-        ? JSON.parse(fs.readFileSync(bookingsFile, 'utf8'))
-        : [];
+    const existingBookings = readBookings();
 
     // Build a Set of existing PNRs for O(1) collision check
     const existingPNRs = new Set(existingBookings.map(b => b.pnr));
@@ -148,122 +437,23 @@ function allocateSeats(requestedSeats, bookedSeats) {
     return nearestSeats;
 }
 
-function greedyAllocateSeats(count, bookedSet) {
-    const totalSeats = Number(count);
-    if (!Number.isInteger(totalSeats) || totalSeats <= 0) return [];
-
-    for (let row = 1; row <= 10; row++) {
-        for (let startSeat = 1; startSeat <= 4 - totalSeats + 1; startSeat++) {
-            const seats = [];
-
-            for (let seat = startSeat; seat < startSeat + totalSeats; seat++) {
-                const seatId = `${row}-${seat}`;
-                if (bookedSet.has(seatId)) break;
-                seats.push(seatId);
-            }
-
-            if (seats.length === totalSeats) return seats;
-        }
-    }
-
-    const nearestSeats = [];
-
-    for (let row = 1; row <= 10 && nearestSeats.length < totalSeats; row++) {
-        for (let seat = 1; seat <= 4 && nearestSeats.length < totalSeats; seat++) {
-            const seatId = `${row}-${seat}`;
-            if (!bookedSet.has(seatId)) nearestSeats.push(seatId);
-        }
-    }
-
-    return nearestSeats;
+function getPeakMultiplier(departureTime) {
+    const hour = Number(String(departureTime || '12:00').split(':')[0]);
+    if (hour >= 8 && hour < 11) return 1.2;
+    if (hour >= 17 && hour < 20) return 1.3;
+    return 1;
 }
 
-function findBestSeats(allSeats, bookedSet, k) {
-    const count = Number(k);
-    if (!Number.isInteger(count) || count <= 0) return [];
-
-    const availableSeats = allSeats.filter(seat => !bookedSet.has(seat));
-    if (availableSeats.length < count) return [];
-
-    let bestSeats = [];
-    let bestScore = -Infinity;
-    let explored = 0;
-    const maxExplored = 5000;
-    const perfectScore = 10 + ((count - 1) * 5);
-
-    function scoreSeats(seats) {
-        const parsed = seats.map(seat => {
-            const [row, number] = seat.split('-').map(Number);
-            return { row, number };
-        }).sort((a, b) => a.row - b.row || a.number - b.number);
-
-        const rowSet = new Set(parsed.map(seat => seat.row));
-        let score = rowSet.size === 1 ? 10 : 0;
-
-        for (let i = 1; i < parsed.length; i++) {
-            if (parsed[i].row === parsed[i - 1].row && parsed[i].number === parsed[i - 1].number + 1) {
-                score += 5;
-            }
-        }
-
-        score -= (rowSet.size - 1) * 3;
-
-        return score;
-    }
-
-    function backtrack(startIndex, chosen) {
-        if (bestScore >= perfectScore || explored >= maxExplored) return;
-
-        if (chosen.length === count) {
-            explored++;
-            const score = scoreSeats(chosen);
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestSeats = [...chosen];
-            }
-
-            return;
-        }
-
-        if (chosen.length + (availableSeats.length - startIndex) < count) return;
-
-        for (let i = startIndex; i < availableSeats.length; i++) {
-            chosen.push(availableSeats[i]);
-            backtrack(i + 1, chosen);
-            chosen.pop();
-
-            if (bestScore >= perfectScore || explored >= maxExplored) return;
-        }
-    }
-
-    backtrack(0, []);
-
-    return bestSeats;
+function applyPeakPricing(baseFare, departureTime) {
+    return Math.round((Number(baseFare) || 0) * getPeakMultiplier(departureTime));
 }
 
-function toAllocationSeatId(seatId) {
-    const match = String(seatId).match(/^[A-Z]\d+-(\d+)([A-Z])$/i);
-    if (match) {
-        const row = Number(match[1]);
-        const seat = match[2].toUpperCase().charCodeAt(0) - 64;
-        return row >= 1 && row <= 10 && seat >= 1 && seat <= 4 ? `${row}-${seat}` : null;
-    }
 
-    return /^\d+-[1-4]$/.test(String(seatId)) ? String(seatId) : null;
-}
 
-function applyPeakPricing(baseFare, timeSlot) {
-    const fare = Number(baseFare) || 0;
-    let multiplier = 1;
-
-    if (timeSlot === "morning_peak") multiplier = 1.3;
-    else if (timeSlot === "evening_peak") multiplier = 1.4;
-    else if (timeSlot === "afternoon") multiplier = 0.9;
-    else if (timeSlot === "early_morning") multiplier = 0.8;
-
-    return Math.round(fare * multiplier);
-}
+// Authoritative train/class catalog used by the booking UI.
+app.get('/trains', requireLogin, (req, res) => {
+    res.json({ success: true, trains: readTrains() });
+});
 
 
 // ─────────────────────────────────────────────
@@ -271,8 +461,9 @@ function applyPeakPricing(baseFare, timeSlot) {
 // Uses bcrypt.compare() — never compares plain text passwords
 // Uses hash map for O(1) user lookup instead of linear scan
 // ─────────────────────────────────────────────
-app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+app.post('/login', rateLimit({ windowMs: AUTH_RATE_WINDOW_MS, max: AUTH_RATE_LIMIT, keyPrefix: 'login' }), async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
     if (!email || !password) {
         return res.json({ success: false, message: "Email and password required" });
@@ -292,8 +483,20 @@ app.post('/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (passwordMatch) {
-        req.session.user = email;
-        return res.json({ success: true });
+        return req.session.regenerate((error) => {
+            if (error) {
+                logEvent('error', 'Session regeneration failed', { requestId: req.id, error: error.message });
+                return res.status(500).json({ success: false, message: 'Unable to start your session. Please try again.' });
+            }
+            req.session.user = email;
+            req.session.save((saveError) => {
+                if (saveError) {
+                    logEvent('error', 'Session save failed', { requestId: req.id, error: saveError.message });
+                    return res.status(500).json({ success: false, message: 'Unable to save your session. Please try again.' });
+                }
+                return res.json({ success: true });
+            });
+        });
     }
 
     res.json({ success: false });
@@ -305,11 +508,16 @@ app.post('/login', async (req, res) => {
 // Hashes password with bcrypt before saving to disk
 // Plain text password is NEVER written to users.json
 // ─────────────────────────────────────────────
-app.post('/register', async (req, res) => {
-    const { email, password } = req.body;
+app.post('/register', rateLimit({ windowMs: AUTH_RATE_WINDOW_MS, max: AUTH_RATE_LIMIT, keyPrefix: 'register' }), async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
     if (!email || !password) {
         return res.json({ success: false, message: "Email and password required" });
+    }
+
+    if (password.length < 8) {
+        return res.status(400).json({ success: false, message: "Password must be at least 8 characters" });
     }
 
     const { arr, map } = readUsers();
@@ -334,73 +542,116 @@ app.post('/register', async (req, res) => {
     arr.push(newUser);
     writeUsers(arr);
 
-    req.session.user = email; // auto-login after registration
-
-    res.json({ success: true, message: "Registration successful" });
+    return req.session.regenerate((error) => {
+        if (error) {
+            logEvent('error', 'Registration session regeneration failed', { requestId: req.id, error: error.message });
+            return res.status(500).json({ success: false, message: 'Registration succeeded, but the session could not be started. Please log in.' });
+        }
+        req.session.user = email;
+        req.session.save((saveError) => {
+            if (saveError) {
+                logEvent('error', 'Registration session save failed', { requestId: req.id, error: saveError.message });
+                return res.status(500).json({ success: false, message: 'Registration succeeded, but the session could not be saved. Please log in.' });
+            }
+            return res.json({ success: true, message: "Registration successful" });
+        });
+    });
 });
 
 // ─────────────────────────────────────────────
-// ROUTE: POST /forgot-password
-// Generates a short-lived reset token for password recovery.
+// PASSWORD RESET
+// Tokens are stored as SHA-256 hashes and expire after 15 minutes.
+// In development, the API returns a reset URL so the flow can be tested
+// without configuring an email provider. Production intentionally does not
+// expose the token; an email provider can be wired in later.
 // ─────────────────────────────────────────────
-app.post('/forgot-password', (req, res) => {
-    const { email } = req.body;
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_MODE = process.env.PASSWORD_RESET_MODE || 'development';
+
+function hashResetToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function normalizeEmail(email) {
+    return typeof email === 'string' ? email.trim().toLowerCase() : '';
+}
+
+app.post('/forgot-password', rateLimit({ windowMs: AUTH_RATE_WINDOW_MS, max: AUTH_RATE_LIMIT, keyPrefix: 'forgot-password' }), (req, res) => {
+    const email = normalizeEmail(req.body?.email);
 
     if (!email) {
-        return res.json({ success: false, message: "Email required" });
+        return res.status(400).json({ success: false, message: 'Email required' });
     }
 
     const { arr, map } = readUsers();
     const user = map[email];
 
+    // Do not reveal whether an account exists in production.
     if (!user) {
-        return res.json({ success: false, message: "User not found" });
+        return res.json({
+            success: true,
+            message: 'If an account exists for that email, password reset instructions have been generated.'
+        });
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = Date.now() + (15 * 60 * 1000);
+    const resetTokenHash = hashResetToken(resetToken);
+    const resetTokenExpiry = Date.now() + RESET_TOKEN_TTL_MS;
+    const userIndex = arr.findIndex(u => normalizeEmail(u.email) === email);
 
-    const userIndex = arr.findIndex(u => u.email === email);
-    arr[userIndex].resetToken = resetToken;
+    arr[userIndex].resetTokenHash = resetTokenHash;
     arr[userIndex].resetTokenExpiry = resetTokenExpiry;
-
+    delete arr[userIndex].resetToken;
     writeUsers(arr);
 
-    res.json({ success: true, token: resetToken });
+    const response = {
+        success: true,
+        message: 'If an account exists for that email, password reset instructions have been generated.'
+    };
+
+    // Development convenience only. Never expose reset credentials in production.
+    if (PASSWORD_RESET_MODE === 'development' && process.env.NODE_ENV !== 'production') {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        response.resetUrl = `${baseUrl}/reset-password.html?token=${encodeURIComponent(resetToken)}`;
+    }
+
+    res.json(response);
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: POST /reset-password
-// Resets password when a valid, unexpired token is supplied.
-// ─────────────────────────────────────────────
-app.post('/reset-password', async (req, res) => {
-    const { token, newPassword } = req.body;
+app.post('/reset-password', rateLimit({ windowMs: AUTH_RATE_WINDOW_MS, max: AUTH_RATE_LIMIT, keyPrefix: 'reset-password' }), async (req, res) => {
+    const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+    const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
 
     if (!token || !newPassword) {
-        return res.json({ success: false, message: "Token and new password required" });
+        return res.status(400).json({ success: false, message: 'Reset link and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
     }
 
     const { arr } = readUsers();
-    const userIndex = arr.findIndex(u => u.resetToken === token);
+    const tokenHash = hashResetToken(token);
+    const userIndex = arr.findIndex(u => u.resetTokenHash === tokenHash);
 
     if (userIndex === -1) {
-        return res.json({ success: false, message: "Invalid reset token" });
+        return res.status(400).json({ success: false, message: 'Invalid or expired reset link' });
     }
 
-    if (!arr[userIndex].resetTokenExpiry || Date.now() > arr[userIndex].resetTokenExpiry) {
-        delete arr[userIndex].resetToken;
+    if (!arr[userIndex].resetTokenExpiry || Date.now() > Number(arr[userIndex].resetTokenExpiry)) {
+        delete arr[userIndex].resetTokenHash;
         delete arr[userIndex].resetTokenExpiry;
         writeUsers(arr);
-        return res.json({ success: false, message: "Reset token expired" });
+        return res.status(400).json({ success: false, message: 'Invalid or expired reset link' });
     }
 
     arr[userIndex].password = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    delete arr[userIndex].resetToken;
+    delete arr[userIndex].resetTokenHash;
     delete arr[userIndex].resetTokenExpiry;
-
+    delete arr[userIndex].resetToken;
     writeUsers(arr);
 
-    res.json({ success: true, message: "Password reset successful" });
+    res.json({ success: true, message: 'Password reset successful' });
 });
 
 
@@ -492,68 +743,23 @@ app.get('/stations', requireLogin, (req, res) => {
 // ─────────────────────────────────────────────
 // ROUTE: POST /shortest-path
 // ─────────────────────────────────────────────
-app.post('/shortest-path', requireLogin, (req, res) => {
+app.post('/shortest-path', rateLimit({ windowMs: GENERAL_RATE_WINDOW_MS, max: ROUTE_RATE_LIMIT, keyPrefix: 'shortest-path' }), requireLogin, (req, res) => {
     const { from, to } = req.body;
 
     if (!from || !to) {
         return res.json({ success: false, message: "Missing stations" });
     }
 
-    const exePath = path.join(__dirname, 'metro.exe');
-
-    execFile(exePath, [from, to], (error, stdout) => {
-        if (error) {
-            console.log(error);
-            return res.json({ success: false, message: "C program failed" });
-        }
-
-        try {
-            const jsonStart = stdout.indexOf('{');
-            if (jsonStart === -1) throw new Error("No JSON found");
-            const result = JSON.parse(stdout.substring(jsonStart));
-            res.json(result);
-        } catch (err) {
-            res.json({ success: false, message: "Parse error", raw: stdout });
-        }
-    });
-});
-
-// ─────────────────────────────────────────────
-// ROUTE: POST /suggest-seats
-// Returns greedy and backtracking-based seat suggestions.
-// ─────────────────────────────────────────────
-app.post('/suggest-seats', requireLogin, (req, res) => {
-    const count = parseInt(req.body.count, 10);
-    const trainName = req.body.trainName || 'Metro Express';
-
-    if (!Number.isInteger(count) || count <= 0) {
-        return res.json({ success: false, message: "Seat count required" });
+    try {
+        const result = findShortestPath(from, to);
+        return res.json(result);
+    } catch (error) {
+        console.error('Shortest path error:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to calculate route"
+        });
     }
-
-    const bookingsFile = path.join(__dirname, 'data', 'bookings.json');
-    const bookings = fs.existsSync(bookingsFile)
-        ? JSON.parse(fs.readFileSync(bookingsFile, 'utf8'))
-        : [];
-
-    const bookedSet = new Set(
-        bookings
-            .filter(b => (b.trainName || 'Metro Express') === trainName)
-            .flatMap(b => Array.isArray(b.seats) ? b.seats : [b.seat])
-            .map(toAllocationSeatId)
-            .filter(Boolean)
-    );
-
-    const allSeats = [];
-    for (let row = 1; row <= 10; row++) {
-        for (let seat = 1; seat <= 4; seat++) {
-            allSeats.push(`${row}-${seat}`);
-        }
-    }
-
-    const greedy = greedyAllocateSeats(count, bookedSet);
-    const suggested = count > 4 ? greedy : findBestSeats(allSeats, bookedSet, count);
-
-    res.json({ success: true, greedy, suggested });
 });
 
 
@@ -567,64 +773,175 @@ app.post('/suggest-seats', requireLogin, (req, res) => {
 // Generates server-side PNR via SHA-256 hashing.
 // Saves booking to data/bookings.json.
 // ─────────────────────────────────────────────
-app.post('/save-booking', requireLogin, (req, res) => {
-    const { trainName, from, to, cls, price, seats, timeSlot } = req.body;
+app.post('/save-booking', rateLimit({ windowMs: GENERAL_RATE_WINDOW_MS, max: BOOKING_RATE_LIMIT, keyPrefix: 'save-booking' }), requireLogin, (req, res) => {
+    const { trainName, from, to, cls, price, seats, travelDate, passengerCount } = req.body;
 
     if (!from || !to || !Array.isArray(seats) || seats.length === 0) {
         return res.json({ success: false, message: "Missing booking details" });
     }
 
+    const normalizedDate = normalizeTravelDate(travelDate);
+    if (!normalizedDate) {
+        return res.status(400).json({ success: false, message: "A valid travel date is required" });
+    }
+    if (isPastTravelDate(normalizedDate)) {
+        return res.status(400).json({ success: false, message: "Travel date cannot be in the past" });
+    }
+
     const requestedSeats = seats.map(seat => String(seat).trim()).filter(Boolean);
-
-    if (requestedSeats.length !== seats.length || new Set(requestedSeats).size !== requestedSeats.length) {
-        return res.json({ success: false, message: "Invalid seat selection" });
+    if (
+        requestedSeats.length !== seats.length ||
+        new Set(requestedSeats).size !== requestedSeats.length ||
+        requestedSeats.some(seat => !isValidSeatId(seat))
+    ) {
+        return res.status(400).json({ success: false, message: "Invalid seat selection" });
     }
 
-    const bookingsFile = path.join(__dirname, 'data', 'bookings.json');
     const selectedTrain = trainName || 'Metro Express';
-
-    // Read existing bookings or initialize empty array
-    const bookings = fs.existsSync(bookingsFile)
-        ? JSON.parse(fs.readFileSync(bookingsFile, 'utf8'))
-        : [];
-
-    const bookedSeats = bookings
-        .filter(b => (b.trainName || 'Metro Express') === selectedTrain)
-        .flatMap(b => Array.isArray(b.seats) ? b.seats : [b.seat])
-        .filter(Boolean);
-
-    const bookedSeatSet = new Set(bookedSeats);
-    const hasConflict = requestedSeats.some(seat => bookedSeatSet.has(seat));
-
-    if (hasConflict) {
-        return res.json({ success: false, message: "One or more seats are already booked" });
+    const selectedClass = cls || 'CC';
+    const trainConfig = getTrainConfig(selectedTrain, selectedClass);
+    if (!trainConfig) {
+        return res.status(400).json({ success: false, message: 'Invalid train or class selection' });
     }
 
-    const selectedTimeSlot = timeSlot || 'early_morning';
-    const finalPrice = applyPeakPricing(price, selectedTimeSlot);
+    const inventory = getInventorySeatIds(trainConfig.classConfig.seats);
+    if (requestedSeats.some(seat => !inventory.includes(seat))) {
+        return res.status(400).json({ success: false, message: 'One or more selected seats are not available in this class' });
+    }
 
-    // Generate unique hashed PNR — uses session email as entropy source
+    const bookings = readBookings();
+    const bookedSeatSet = getBookedSeats(bookings, selectedTrain, normalizedDate, selectedClass);
+
+    if (requestedSeats.some(seat => bookedSeatSet.has(seat))) {
+        return res.status(409).json({
+            success: false,
+            message: "One or more seats are already booked for this journey date"
+        });
+    }
+
+    const count = Number(passengerCount) || requestedSeats.length;
+    if (!Number.isInteger(count) || count !== requestedSeats.length || count < 1 || count > 6) {
+        return res.status(400).json({ success: false, message: "Invalid passenger count" });
+    }
+
+    const authoritativeBasePrice = Number(trainConfig.classConfig.price);
+    const finalPrice = applyPeakPricing(authoritativeBasePrice, trainConfig.departureTime);
     const pnr = generatePNR(req.session.user);
 
-    const newBooking = {
+    const newBooking = normalizeBooking({
         pnr,
         userEmail: req.session.user,
         trainName: selectedTrain,
         from,
         to,
-        cls: cls || 'CC',
+        cls: selectedClass,
+        basePrice: authoritativeBasePrice,
         price: finalPrice,
         seats: requestedSeats,
         seat: requestedSeats[0],
-        timeSlot: selectedTimeSlot,
+        passengerCount: count,
+        travelDate: normalizedDate,
         status: 'Confirmed',
         bookedAt: new Date().toISOString()
-    };
+    });
 
     bookings.push(newBooking);
-    fs.writeFileSync(bookingsFile, JSON.stringify(bookings, null, 2));
+    writeBookings(bookings);
 
-    res.json({ success: true, pnr, seats: requestedSeats, finalPrice });
+    res.json({
+        success: true,
+        pnr,
+        seats: requestedSeats,
+        finalPrice,
+        travelDate: normalizedDate
+    });
+});
+
+// Return server-authoritative seat availability for a specific journey date.
+// Return bookings belonging to the authenticated user. This becomes the
+// single source of truth for booking history; the browser no longer mirrors
+// server bookings in localStorage.
+app.get('/my-bookings', requireLogin, (req, res) => {
+    const bookings = readBookings()
+        .map(normalizeBooking)
+        .filter(b => b.userEmail === req.session.user)
+        .sort((a, b) => new Date(b.bookedAt || 0) - new Date(a.bookedAt || 0));
+
+    res.json({ success: true, bookings });
+});
+
+// Cancel an existing booking owned by the authenticated user.
+// Cancellation is represented by status rather than deleting the record,
+// preserving a complete booking history while releasing its seats.
+app.post('/cancel-booking', rateLimit({ windowMs: GENERAL_RATE_WINDOW_MS, max: BOOKING_RATE_LIMIT, keyPrefix: 'cancel-booking' }), requireLogin, (req, res) => {
+    const pnr = String(req.body?.pnr || '').trim().toUpperCase();
+
+    if (!/^MG[A-Z0-9]{8,12}$/.test(pnr)) {
+        return res.status(400).json({ success: false, message: 'A valid PNR is required' });
+    }
+
+    const bookings = readBookings();
+    const index = bookings.findIndex(
+        booking => booking.pnr === pnr && booking.userEmail === req.session.user
+    );
+
+    if (index === -1) {
+        return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    const booking = normalizeBooking(bookings[index]);
+
+    if (booking.status === 'Cancelled') {
+        return res.status(409).json({ success: false, message: 'This booking is already cancelled' });
+    }
+
+    if (booking.travelDate && isPastTravelDate(booking.travelDate)) {
+        return res.status(400).json({ success: false, message: 'Past journeys cannot be cancelled' });
+    }
+
+    const bookedAtMs = Date.parse(booking.bookedAt || '');
+    if (!Number.isFinite(bookedAtMs) || Date.now() - bookedAtMs > 2 * 60 * 60 * 1000) {
+        return res.status(400).json({ success: false, message: 'Cancellation is available only within 2 hours of booking' });
+    }
+
+    booking.status = 'Cancelled';
+    booking.cancelledAt = new Date().toISOString();
+    bookings[index] = booking;
+    writeBookings(bookings);
+
+    return res.json({
+        success: true,
+        message: 'Booking cancelled successfully',
+        booking
+    });
+});
+
+app.get('/booked-seats', requireLogin, (req, res) => {
+    const trainName = String(req.query.trainName || 'Metro Express');
+    const cls = String(req.query.cls || 'CC');
+    const travelDate = normalizeTravelDate(req.query.travelDate);
+
+    if (!travelDate) {
+        return res.status(400).json({ success: false, message: "A valid travel date is required" });
+    }
+
+    const trainConfig = getTrainConfig(trainName, cls);
+    if (!trainConfig) {
+        return res.status(400).json({ success: false, message: 'Invalid train or class selection' });
+    }
+
+    const inventory = getInventorySeatIds(trainConfig.classConfig.seats);
+    const bookedSeats = [...getBookedSeats(readBookings(), trainName, travelDate, cls)]
+        .filter(seat => inventory.includes(seat));
+
+    res.json({
+        success: true, trainName, cls, travelDate,
+        departureTime: trainConfig.departureTime,
+        basePrice: trainConfig.classConfig.price,
+        peakMultiplier: getPeakMultiplier(trainConfig.departureTime),
+        bookedSeats, totalSeats: inventory.length,
+        availableSeats: inventory.length - bookedSeats.length
+    });
 });
 
 
@@ -635,23 +952,17 @@ app.post('/save-booking', requireLogin, (req, res) => {
 // Scoped to the currently logged-in user for security.
 // ─────────────────────────────────────────────
 app.get('/check-pnr', requireLogin, (req, res) => {
-    const { pnr } = req.query;
+    const pnr = String(req.query?.pnr || '').trim().toUpperCase();
 
     if (!pnr) {
         return res.json({ success: false, message: "PNR required" });
     }
 
-    const bookingsFile = path.join(__dirname, 'data', 'bookings.json');
-
-    if (!fs.existsSync(bookingsFile)) {
-        return res.json({ success: false, message: "No bookings found" });
-    }
-
-    const bookings = JSON.parse(fs.readFileSync(bookingsFile, 'utf8'));
+    const bookings = readBookings();
 
     // Match PNR and scope to current user
     const booking = bookings.find(
-        b => b.pnr === pnr && b.userEmail === req.session.user
+        b => String(b.pnr || '').toUpperCase() === pnr && b.userEmail === req.session.user
     );
 
     if (!booking) {
@@ -661,6 +972,33 @@ app.get('/check-pnr', requireLogin, (req, res) => {
     res.json({ success: true, booking });
 });
 
+
+// API responses should not be cached by browsers or intermediary proxies.
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health' || ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+    next();
+});
+
+// Central error handler: return safe messages to clients and detailed structured logs server-side.
+app.use((err, req, res, next) => {
+    logEvent('error', 'Unhandled request error', {
+        requestId: req.id,
+        method: req.method,
+        path: req.path,
+        error: err?.message,
+        stack: err?.stack
+    });
+
+    if (res.headersSent) return next(err);
+    const status = err?.type === 'entity.too.large' ? 413 : 500;
+    return res.status(status).json({
+        success: false,
+        message: status === 413 ? 'Request payload is too large' : 'An unexpected server error occurred',
+        requestId: req.id
+    });
+});
 
 // ─────────────────────────────────────────────
 // STATIC FILES + INDEX PROTECTION
@@ -679,9 +1017,24 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, "../FrontEnd")));
 
 
+process.on('unhandledRejection', (reason) => {
+    logEvent('error', 'Unhandled promise rejection', {
+        error: reason instanceof Error ? reason.message : String(reason),
+        stack: reason instanceof Error ? reason.stack : undefined
+    });
+});
+
+process.on('uncaughtException', (error) => {
+    logEvent('error', 'Uncaught exception', { error: error.message, stack: error.stack });
+});
+
 // ─────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running at http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;

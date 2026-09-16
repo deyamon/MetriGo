@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="api.js"></script>
 <meta charset="UTF-8">
 <title>MetriGo — Sign In</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -476,6 +477,76 @@ html, body {
   .right { min-height: 100vh; padding: 48px 32px; }
   .right::before { display: none; }
 }
+
+
+/* ===== MetriGo Responsive UI Polish ===== */
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 10px 20px !important;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .nav-brand { min-height: 40px; }
+  .nav-right { margin-left: auto; }
+  .nav-profile span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-links {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+  .nav-profile-btn, .nav-profile { min-height: 40px; }
+}
+
+@media (max-width: 600px) {
+  .nav-logo-text { font-size: 17px; }
+  .nav-profile { padding-right: 8px; }
+  .nav-profile span { display: none; }
+  .nav-profile-btn { padding-right: 8px; }
+  .hero, .page-header { padding-left: 20px !important; padding-right: 20px !important; }
+  .page-header h1 { font-size: clamp(28px, 8vw, 34px); }
+  .main { padding-left: 16px !important; padding-right: 16px !important; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .navbar { padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links a { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Accessible, consistent focus treatment */
+:focus-visible { outline: 3px solid rgba(26,86,219,.28); outline-offset: 2px; }
+
+
+@media (max-width: 600px) {
+  .right { padding: 36px 20px !important; }
+  .right-inner { width: 100%; }
+  .form-title { font-size: 28px; }
+  .stats-row { gap: 10px; }
+  .stat-num { font-size: 18px; }
+  .line-badges { flex-wrap: wrap; }
+}
+@media (max-width: 380px) {
+  .right { padding: 28px 16px !important; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .divider-v { display: none; }
+}
+
 </style>
 </head>
 <body>
@@ -579,28 +650,13 @@ html, body {
       <div id="message"></div>
     </form>
 
-    <form id="resetPanel" class="reset-panel" onsubmit="resetPassword(event)">
-      <div class="reset-title">Reset password</div>
-      <div class="form-group">
-        <label class="form-label" for="resetToken">Reset token</label>
-        <div class="input-wrap">
-          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-          </svg>
-          <input type="text" id="resetToken" placeholder="Paste reset token">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="newPassword">New password</label>
-        <div class="input-wrap">
-          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          <input type="password" id="newPassword" placeholder="New password" autocomplete="new-password">
-        </div>
-      </div>
-      <button type="submit" class="btn-submit">Reset Password</button>
-    </form>
+    <div id="resetPanel" class="reset-panel">
+      <div class="reset-title">Reset your password</div>
+      <p style="font-size:13px;color:var(--ink-muted);line-height:1.6;margin-bottom:14px;">
+        Enter your email and we'll generate a secure reset link.
+      </p>
+      <button type="button" class="btn-submit" onclick="forgotPassword()">Get reset link</button>
+    </div>
 
     <div class="or-divider">
       <div class="or-line"></div>
@@ -645,7 +701,7 @@ function login(event) {
 
   setLoading(true);
 
-  fetch("http://localhost:8080/login", {
+  apiFetch("/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
@@ -667,52 +723,25 @@ function login(event) {
 }
 
 function forgotPassword() {
+  const panel = document.getElementById("resetPanel");
+  panel.classList.add("active");
   const email = prompt("Enter your email address");
   if (!email) return;
 
-  fetch("http://localhost:8080/forgot-password", {
+  apiFetch("/forgot-password", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email.trim() })
   })
   .then(r => r.json())
   .then(data => {
-    if (data.success) {
-      document.getElementById("resetPanel").classList.add("active");
-      document.getElementById("resetToken").value = data.token;
-      showMessage(`Reset token: ${data.token}`, "success");
+    if (data.success && data.resetUrl) {
+      showMessage("Reset link generated. Opening it now…", "success");
+      setTimeout(() => { window.location.href = data.resetUrl; }, 500);
+    } else if (data.success) {
+      showMessage(data.message, "success");
     } else {
-      showMessage(data.message || "Unable to create reset token.", "error");
-    }
-  })
-  .catch(() => showMessage("Server error. Please try again.", "error"));
-}
-
-function resetPassword(event) {
-  event.preventDefault();
-
-  const token = document.getElementById("resetToken").value.trim();
-  const newPassword = document.getElementById("newPassword").value.trim();
-
-  if (!token || !newPassword) {
-    showMessage("Reset token and new password are required.", "error");
-    return;
-  }
-
-  fetch("http://localhost:8080/reset-password", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, newPassword })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
-      document.getElementById("resetPanel").classList.remove("active");
-      document.getElementById("resetToken").value = "";
-      document.getElementById("newPassword").value = "";
-      showMessage("Password reset successful. You can sign in now.", "success");
-    } else {
-      showMessage(data.message || "Password reset failed.", "error");
+      showMessage(data.message || "Unable to start password reset.", "error");
     }
   })
   .catch(() => showMessage("Server error. Please try again.", "error"));

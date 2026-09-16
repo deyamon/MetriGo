@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // =============================
     // 4. LOAD STATIONS INTO DROPDOWN
     // =============================
-    fetch('http://localhost:8080/stations')
+    apiFetch('/stations')
         .then(res => res.json())
         .then(stations => {
             const fromList = document.getElementById('fromInput');
@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
         resultBox.innerHTML = '⏳ Finding shortest path using Dijkstra...';
 
         // Call C backend via Node.js
-        fetch('http://localhost:8080/shortest-path', {
+        apiFetch('/shortest-path', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ from, to })

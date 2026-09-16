@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="api.js"></script>
 <meta charset="UTF-8">
 <title>MetriGo — Profile</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -336,6 +337,81 @@ body {
   .navbar { padding: 0 20px; }
   .nav-links { display: none; }
 }
+
+
+/* ===== MetriGo Responsive UI Polish ===== */
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 10px 20px !important;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .nav-brand { min-height: 40px; }
+  .nav-right { margin-left: auto; }
+  .nav-profile span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-links {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+  .nav-profile-btn, .nav-profile { min-height: 40px; }
+}
+
+@media (max-width: 600px) {
+  .nav-logo-text { font-size: 17px; }
+  .nav-profile { padding-right: 8px; }
+  .nav-profile span { display: none; }
+  .nav-profile-btn { padding-right: 8px; }
+  .hero, .page-header { padding-left: 20px !important; padding-right: 20px !important; }
+  .page-header h1 { font-size: clamp(28px, 8vw, 34px); }
+  .main { padding-left: 16px !important; padding-right: 16px !important; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .navbar { padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links a { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Accessible, consistent focus treatment */
+:focus-visible { outline: 3px solid rgba(26,86,219,.28); outline-offset: 2px; }
+
+
+@media (max-width: 900px) {
+  .page { max-width: 760px; grid-template-columns: 220px 1fr; gap: 20px; padding-left: 20px; padding-right: 20px; }
+}
+@media (max-width: 700px) {
+  .page { grid-template-columns: 1fr; padding: 24px 16px 56px; }
+  .profile-card { padding: 22px 18px; }
+  .side-nav { display: flex; overflow-x: auto; scrollbar-width: none; }
+  .side-nav::-webkit-scrollbar { display:none; }
+  .side-nav-item { flex: 0 0 auto; border-bottom: none; border-right: 1px solid var(--border); padding: 12px 16px; }
+  .side-nav-item:last-child { border-right: none; }
+  .card-header, .card-body { padding-left: 20px; padding-right: 20px; }
+}
+@media (max-width: 480px) {
+  .card-header { align-items: flex-start; }
+  .card-body { padding: 20px 16px; }
+  .form-row { grid-template-columns: 1fr; gap: 0; }
+  .content-card { border-radius: 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -519,7 +595,7 @@ function setLoading(btnId, txtId, spinnerId, loading, label) {
 }
 
 function loadProfile() {
-  fetch("http://localhost:8080/profile")
+  apiFetch("/profile")
     .then(r => {
       if (r.status === 401) window.location.href = "login.html";
       return r.json();
@@ -550,7 +626,7 @@ function saveInfo() {
   const name = document.getElementById("name").value.trim();
   setLoading("saveInfoBtn", "saveInfoText", "saveInfoSpinner", true, "Save Changes");
 
-  fetch("http://localhost:8080/update-profile", {
+  apiFetch("/update-profile", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name })
@@ -581,7 +657,7 @@ function savePassword() {
 
   setLoading("savePassBtn", "savePassText", "savePassSpinner", true, "Update Password");
 
-  fetch("http://localhost:8080/update-profile", {
+  apiFetch("/update-profile", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password: pass })
@@ -604,7 +680,7 @@ function savePassword() {
 }
 
 function logout() {
-  window.location.href = "http://localhost:8080/logout";
+  window.location.href = "/api/logout";
 }
 
 loadProfile();

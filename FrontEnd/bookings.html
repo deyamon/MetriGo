@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="api.js"></script>
 <meta charset="UTF-8">
 <title>MetriGo — Book Tickets</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -99,17 +100,6 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .passenger-panel label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
 .passenger-panel input { width: 82px; height: 40px; border: 1.5px solid var(--border); border-radius: 10px; padding: 0 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--surface); outline: none; }
 .passenger-panel input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
-.time-slot-panel { padding: 16px 28px 0; }
-.time-slot-control { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.time-slot-control label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
-.time-slot-control select { min-width: 220px; height: 40px; border: 1.5px solid var(--border); border-radius: 10px; padding: 0 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--surface); outline: none; }
-.time-slot-control select:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,86,219,0.08); }
-.time-slot-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-.smart-chip { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); }
-.smart-chip.warning { background: #FFF3E0; border-color: rgba(180,83,9,0.28); color: #B45309; }
-.smart-chip.low { background: #EAF8F2; border-color: rgba(13,153,112,0.24); color: var(--success); }
-.smart-chip.medium { background: #FFF8D6; border-color: rgba(180,130,0,0.26); color: #9A6B00; }
-.smart-chip.high { background: #FEF1F1; border-color: rgba(217,48,37,0.2); color: var(--danger); }
 .coach-tabs { display: flex; gap: 8px; padding: 16px 28px 0; overflow-x: auto; }
 .coach-tab { padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 500; color: var(--ink-soft); cursor: pointer; white-space: nowrap; transition: all 0.2s; }
 .coach-tab.active { background: var(--accent-light); border-color: rgba(26,86,219,0.3); color: var(--accent); }
@@ -122,14 +112,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .seat { width: 40px; height: 36px; border-radius: 8px; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.15s; user-select: none; }
 .seat.available { background: #EEF3FD; border-color: rgba(26,86,219,0.4); color: var(--accent); }
 .seat.available:hover { background: var(--accent); color: white; transform: scale(1.1); }
+.seat.unavailable { background: #f3f4f7; border-color: #e1e3e9; color: #c2c5cf; cursor: not-allowed; opacity: 0.65; }
 .seat.booked { background: #e8e9ee; border-color: #c5c8d4; color: #a0a5b8; cursor: not-allowed; }
-.seat.suggested:not(.selected):not(.booked) { box-shadow: 0 0 0 3px rgba(26,86,219,0.28), 0 6px 18px rgba(26,86,219,0.24); border-color: var(--accent); }
 .seat.selected { background: var(--accent); border-color: var(--accent); color: white; transform: scale(1.05); box-shadow: 0 4px 12px rgba(26,86,219,0.35); }
 .seat.ladies { background: #fce8f3; border-color: rgba(214,51,132,0.4); color: #d63384; }
 .seat.ladies:hover { background: #d63384; color: white; transform: scale(1.1); }
 .seat-aisle { width: 20px; }
-.suggest-seats-btn { margin: 0 28px 18px; height: 40px; padding: 0 18px; border: 1.5px solid rgba(26,86,219,0.28); border-radius: 10px; background: var(--accent-light); color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
-.suggest-seats-btn:hover { background: rgba(26,86,219,0.14); transform: translateY(-1px); }
 
 /* Modal footer */
 .modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; bottom: 0; background: white; border-radius: 0 0 24px 24px; }
@@ -210,6 +198,10 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .toast-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .toast-icon svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
+.journey-date-wrap { margin-top: 20px; display: inline-flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; }
+.journey-date-wrap label { font-size: 12px; color: rgba(255,255,255,0.65); }
+.journey-date-wrap input { height: 34px; padding: 0 10px; border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; background: rgba(255,255,255,0.08); color: white; font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; }
+.journey-date-wrap input:focus { border-color: rgba(110,163,247,0.7); }
 @media (max-width: 768px) {
   .navbar { padding: 0 20px; }
   .nav-links { display: none; }
@@ -221,6 +213,100 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
   .seat-modal { max-height: 85vh; }
   .seat { width: 34px; height: 30px; font-size: 9px; }
 }
+
+
+/* ===== MetriGo Responsive UI Polish ===== */
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 10px 20px !important;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .nav-brand { min-height: 40px; }
+  .nav-right { margin-left: auto; }
+  .nav-profile span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-links {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+  .nav-profile-btn, .nav-profile { min-height: 40px; }
+}
+
+@media (max-width: 600px) {
+  .nav-logo-text { font-size: 17px; }
+  .nav-profile { padding-right: 8px; }
+  .nav-profile span { display: none; }
+  .nav-profile-btn { padding-right: 8px; }
+  .hero, .page-header { padding-left: 20px !important; padding-right: 20px !important; }
+  .page-header h1 { font-size: clamp(28px, 8vw, 34px); }
+  .main { padding-left: 16px !important; padding-right: 16px !important; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .navbar { padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links a { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Accessible, consistent focus treatment */
+:focus-visible { outline: 3px solid rgba(26,86,219,.28); outline-offset: 2px; }
+
+
+@media (max-width: 900px) {
+  .page-header { padding-top: 40px; padding-bottom: 48px; }
+  .filter-bar { padding-left: 20px !important; padding-right: 20px !important; overflow-x: auto; flex-wrap: nowrap !important; scrollbar-width: none; }
+  .filter-bar::-webkit-scrollbar { display:none; }
+  .filter-btn { flex: 0 0 auto; }
+  .main { max-width: 100%; }
+  .train-top { align-items: flex-start; }
+  .train-classes { gap: 12px; }
+  .seat-grid-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 600px) {
+  .journey-date-wrap { display: flex; flex-wrap: wrap; width: 100%; margin-top: 16px; gap: 8px; }
+  .journey-date-wrap input { flex: 1 1 150px; min-width: 0; }
+  .journey-date-wrap > div { flex-basis: 100%; }
+  .train-card { border-radius: 16px; }
+  .train-top { flex-direction: column; }
+  .train-meta { flex-wrap: wrap; }
+  .train-classes { flex-direction: column; }
+  .class-option { width: 100%; }
+  .seat-modal, .pay-modal, .success-modal { max-height: calc(100vh - 24px); border-radius: 18px; }
+  .modal-overlay { padding: 12px; align-items: flex-end; }
+  .seat-header, .seat-grid-container, .seat-footer, .pay-body { padding-left: 18px !important; padding-right: 18px !important; }
+  .seat-footer { flex-direction: column; align-items: stretch !important; gap: 12px !important; }
+  .proceed-btn { width: 100%; justify-content: center; }
+  .pay-header { padding: 22px 18px; }
+  .pay-amount { font-size: 34px; }
+  .pay-body { padding-top: 20px; }
+  .pay-info-grid, .ticket-details { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pay-methods { flex-wrap: wrap; }
+  .pay-method { min-width: calc(50% - 4px); }
+  .success-modal { padding: 30px 20px; }
+}
+@media (max-width: 380px) {
+  .seat { width: 32px; height: 30px; font-size: 8px; }
+  .seat-aisle { width: 12px; }
+  .pay-info-grid, .ticket-details { grid-template-columns: 1fr; }
+}
+
 </style>
 </head>
 <body>
@@ -250,6 +336,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="header-eyebrow">Metro Tickets</div>
     <h1>Book Your Journey</h1>
     <p>Select a train · Choose your seat · Pay instantly</p>
+    <div class="journey-date-wrap">
+      <label for="journeyDate">Journey date</label>
+      <input type="date" id="journeyDate">
+      <div id="dateAvailability" style="font-size:11px;color:var(--ink-muted);margin-top:6px;">Select a date to check live seat availability.</div>
+    </div>
   </div>
 </div>
 
@@ -285,28 +376,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
       <input type="number" id="passengerCount" min="1" max="6" value="1" onchange="updatePassengerCount()" oninput="updatePassengerCount()">
     </div>
 
-    <div class="time-slot-panel">
-      <div class="time-slot-control">
-        <label for="timeSlot">Select Travel Time</label>
-        <select id="timeSlot" onchange="updateTimeSlotInfo()">
-          <option value="early_morning">Early Morning (6-8 AM) 💰 Cheapest</option>
-          <option value="morning_peak">Morning Peak (8-11 AM)</option>
-          <option value="afternoon">Afternoon (11-5 PM)</option>
-          <option value="evening_peak">Evening Peak (5-9 PM)</option>
-          <option value="night">Night (9-11 PM)</option>
-        </select>
-      </div>
-      <div class="time-slot-meta">
-        <span class="smart-chip" id="bestTimeHint">Best time to travel: Early Morning 💰</span>
-        <span class="smart-chip" id="peakWarning">Avoid peak hours if possible</span>
-        <span class="smart-chip low" id="crowdLevel">Crowd Level: Low</span>
-      </div>
-    </div>
-
     <div class="coach-tabs" id="coachTabs"></div>
 
     <div class="seat-grid-container" id="seatGrid"></div>
-    <button class="suggest-seats-btn" id="suggestSeatsBtn" onclick="suggestBetterSeats()">✨ Suggest Better Seats</button>
 
     <div class="modal-footer">
       <div class="seat-summary" id="seatSummary">No seat selected</div>
@@ -421,22 +493,16 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 </div>
 
 <script>
-const trains = [
-  { name:"Shatabdi Express", from:"New Delhi", to:"Kanpur", duration:"5h 30m", route:"delhi-kanpur",
-    classes:[{type:"CC",price:1200,seats:45,tatkal:true},{type:"EC",price:2200,seats:12,tatkal:true}] },
-  { name:"Vande Bharat Express", from:"New Delhi", to:"Kanpur", duration:"4h 10m", route:"delhi-kanpur",
-    classes:[{type:"CC",price:1500,seats:60,tatkal:false},{type:"EC",price:2800,seats:5,tatkal:true}] },
-  { name:"Rajdhani Express", from:"Delhi", to:"Mumbai", duration:"16h 00m", route:"delhi-mumbai",
-    classes:[{type:"3A",price:2500,seats:20,tatkal:true},{type:"2A",price:3500,seats:10,tatkal:true}] },
-  { name:"Duronto Express", from:"Delhi", to:"Mumbai", duration:"14h 30m", route:"delhi-mumbai",
-    classes:[{type:"SL",price:900,seats:80,tatkal:false},{type:"3A",price:2200,seats:30,tatkal:true}] }
-];
+let trains = [];
 
 // Current booking state
 let currentBooking = {};
 let selectedSeats = [];
-let suggestedSeats = [];
 let passengerCount = 1;
+let bookedSeats = new Set();
+let totalSeats = 0;
+let availableSeats = 0;
+let travelDate = null;
 let currentCoach = 'C1';
 let qrInstance = null;
 
@@ -454,7 +520,7 @@ function render(list) {
         <div class="train-icon-wrap"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg></div>
         <div class="train-info">
           <div class="train-name">${train.name}</div>
-          <div class="train-meta"><span>${train.from}</span><span>→</span><span>${train.to}</span></div>
+          <div class="train-meta"><span>${train.from}</span><span>→</span><span>${train.to}</span><span>·</span><span>${train.departureTime}</span></div>
         </div>
         <div class="duration-badge">⏱ ${train.duration}</div>
       </div>
@@ -486,20 +552,27 @@ function filterTrains(type, btn) {
 
 // ---- SEAT MODAL ----
 function openSeatModal(trainName, from, to, cls, price, prefFrom, prefTo) {
-  currentBooking = { trainName, from: prefFrom||from, to: prefTo||to, cls, basePrice: price, price };
+  travelDate = travelDate || document.getElementById('journeyDate')?.value || null;
+  if (!travelDate) {
+    showToast('Please select a journey date first.');
+    document.getElementById('journeyDate')?.focus();
+    return;
+  }
+  const trainConfig = trains.find(t => t.name === trainName);
+  const classConfig = trainConfig?.classes.find(c => c.type === cls);
+  currentBooking = { trainName, from: prefFrom||from, to: prefTo||to, cls, basePrice: classConfig?.price ?? price, price: classConfig?.price ?? price, travelDate, capacity: classConfig?.seats ?? 0, departureTime: trainConfig?.departureTime ?? '12:00' };
+
   selectedSeats = [];
-  suggestedSeats = [];
   passengerCount = 1;
   document.getElementById("passengerCount").value = passengerCount;
-  document.getElementById("timeSlot").value = getCheapestSlot();
   document.getElementById("seatModalTitle").textContent = `Select Seats — ${cls} Class`;
   document.getElementById("seatModalSub").textContent = `${trainName} · ${currentBooking.from} → ${currentBooking.to}`;
   document.getElementById("proceedBtn").disabled = true;
-  updateTimeSlotInfo();
   updateSeatSummary();
   buildCoachTabs();
   renderSeatGrid('C1');
   document.getElementById("seatOverlay").classList.add("active");
+  loadBookedSeats().then(() => renderSeatGrid(currentCoach));
 }
 
 function closeSeatModal() {
@@ -515,7 +588,6 @@ function buildCoachTabs() {
 
 function switchCoach(coach, btn) {
   currentCoach = coach;
-  suggestedSeats = [];
   document.querySelectorAll(".coach-tab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   renderSeatGrid(coach);
@@ -534,146 +606,79 @@ function updatePassengerCount() {
   updateSeatSummary();
 }
 
-function getCheapestSlot() {
-  return 'early_morning';
-}
-
-function getCrowdLevel(timeSlot) {
-  if (timeSlot === 'morning_peak') return 'High';
-  if (timeSlot === 'afternoon') return 'Medium';
-  if (timeSlot === 'evening_peak') return 'Very High';
-  return 'Low';
-}
-
-function getTimeSlotPrice(baseFare, timeSlot) {
-  let multiplier = 1;
-
-  if (timeSlot === 'morning_peak') multiplier = 1.3;
-  else if (timeSlot === 'evening_peak') multiplier = 1.4;
-  else if (timeSlot === 'afternoon') multiplier = 0.9;
-  else if (timeSlot === 'early_morning') multiplier = 0.8;
-
-  return Math.round(baseFare * multiplier);
-}
-
-function updateTimeSlotInfo() {
-  const timeSlot = document.getElementById("timeSlot").value;
-  currentBooking.timeSlot = timeSlot;
-
-  const peakWarning = document.getElementById("peakWarning");
-  const crowdLevel = document.getElementById("crowdLevel");
-  const bestTimeHint = document.getElementById("bestTimeHint");
-  const crowd = getCrowdLevel(timeSlot);
-
-  bestTimeHint.textContent = 'Best time to travel: Early Morning 💰';
-  peakWarning.textContent = (timeSlot === 'morning_peak' || timeSlot === 'evening_peak')
-    ? '🔥 Peak hours – higher fare & crowd'
-    : 'Avoid peak hours if possible';
-  peakWarning.className = `smart-chip${timeSlot === 'morning_peak' || timeSlot === 'evening_peak' ? ' warning' : ''}`;
-
-  crowdLevel.textContent = `Crowd Level: ${crowd}`;
-  crowdLevel.className = `smart-chip ${crowd === 'Low' ? 'low' : crowd === 'Medium' ? 'medium' : 'high'}`;
-
-  updateSeatSummary();
-}
-
-// Generate deterministic "booked" seats
+// Server-authoritative booked seats for the selected journey date.
 function isBooked(coach, row, col) {
-  const seed = coach.charCodeAt(1) + row * 3 + col * 7;
-  return (seed % 5 === 0);
+  const seatId = `${coach}-${row}${String.fromCharCode(64 + col)}`;
+  return bookedSeats.has(seatId);
 }
 
 function isLadies(row) { return row <= 2; }
 
+async function loadBookedSeats() {
+  bookedSeats = new Set();
+  totalSeats = 0;
+  availableSeats = 0;
+  if (!travelDate || !currentBooking.trainName) return;
+
+  try {
+    const response = await apiFetch(`/booked-seats?trainName=${encodeURIComponent(currentBooking.trainName)}&cls=${encodeURIComponent(currentBooking.cls)}&travelDate=${encodeURIComponent(travelDate)}`);
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Availability request failed');
+
+    bookedSeats = new Set(data.bookedSeats || []);
+    totalSeats = Number(data.totalSeats) || 0;
+    availableSeats = Number(data.availableSeats) || 0;
+    if (data.basePrice != null) currentBooking.basePrice = Number(data.basePrice);
+    currentBooking.capacity = Number(data.totalSeats) || currentBooking.capacity || 0;
+    currentBooking.departureTime = data.departureTime || currentBooking.departureTime;
+
+    const availability = document.getElementById('dateAvailability');
+    if (availability) {
+      availability.textContent = `${availableSeats} of ${totalSeats} seats currently available for ${formatJourneyDate(travelDate)}.`;
+      if (availableSeats === 0) {
+        showToast('No seats are currently available for this journey date.');
+      }
+    }
+
+    // A date change invalidates any previous selections.
+    selectedSeats = selectedSeats.filter(seat => !bookedSeats.has(seat));
+    updateSeatSummary();
+  } catch (error) {
+    console.error('Unable to load seat availability:', error);
+    const availability = document.getElementById('dateAvailability');
+    if (availability) availability.textContent = 'Live availability could not be loaded.';
+    showToast('Could not load live seat availability. Please try again.');
+  }
+}
+
+function formatJourneyDate(value) {
+  if (!value) return 'selected date';
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+}
+
 function renderSeatGrid(coach) {
   const grid = document.getElementById("seatGrid");
   const rows = 12;
-  let html = `<p class="compartment-label">Coach ${coach} — Seat Layout (Lower · Middle · Upper)</p>`;
+  const classCapacity = Number(currentBooking.capacity) || 0;
+  const physicalIndex = (parseInt(coach.slice(1), 10) - 1) * 12 * 6;
+  let html = `<p class="compartment-label">Coach ${coach} — ${currentBooking.cls} Class · ${classCapacity} seat inventory</p>`;
   for (let r = 1; r <= rows; r++) {
     html += `<div class="seat-row"><span class="row-num">${r}</span>`;
-    for (let c = 1; c <= 3; c++) {
-      const booked = isBooked(coach, r, c);
-      const ladies = isLadies(r) && c === 1;
+    for (let c = 1; c <= 6; c++) {
       const seatId = `${coach}-${r}${String.fromCharCode(64+c)}`;
-      const cls = selectedSeats.includes(seatId) ? 'selected' : (booked ? 'booked' : (ladies ? 'ladies' : 'available'));
-      const suggested = suggestedSeats.includes(seatId) && cls !== 'booked' ? ' suggested' : '';
-      const label = ['L','M','U'][c-1];
-      html += `<div class="seat ${cls}${suggested}" id="seat-${seatId}" onclick="selectSeat('${seatId}','${cls}')">${r}${label}</div>`;
-    }
-    html += `<div class="seat-aisle"></div>`;
-    for (let c = 4; c <= 6; c++) {
-      const booked = isBooked(coach, r, c);
-      const seatId = `${coach}-${r}${String.fromCharCode(64+c)}`;
-      const cls = selectedSeats.includes(seatId) ? 'selected' : (booked ? 'booked' : 'available');
-      const suggested = suggestedSeats.includes(seatId) && cls !== 'booked' ? ' suggested' : '';
-      const labels = ['L','M','U','SL'];
-      html += `<div class="seat ${cls}${suggested}" id="seat-${seatId}" onclick="selectSeat('${seatId}','${cls}')">${r}${labels[c-4]||c}</div>`;
+      const inInventory = physicalIndex + ((r - 1) * 6) + c <= classCapacity;
+      const booked = inInventory && isBooked(coach, r, c);
+      const ladies = inInventory && isLadies(r) && c === 1;
+      const seatClass = !inInventory ? 'unavailable' : (selectedSeats.includes(seatId) ? 'selected' : (booked ? 'booked' : (ladies ? 'ladies' : 'available')));
+      const label = ['L','M','U','L','M','U'][c-1];
+      const cell = `<div class="seat ${seatClass}" id="seat-${seatId}" ${inInventory ? `onclick="selectSeat('${seatId}','${seatClass}')"` : ''}>${r}${label}</div>`;
+      html += c === 4 ? `<div class="seat-aisle"></div>${cell}` : cell;
     }
     html += `</div>`;
   }
   grid.innerHTML = html;
 }
-
-function toVisibleSuggestedSeat(seatId) {
-  const parts = String(seatId).split('-');
-  const row = parseInt(parts[0], 10);
-  const seat = parseInt(parts[1], 10);
-
-  if (!row || !seat || seat < 1 || seat > 4) return null;
-
-  return `${currentCoach}-${row}${String.fromCharCode(64 + seat)}`;
-}
-
-function clearSuggestedSeatHighlights() {
-  suggestedSeats.forEach(seatId => {
-    const seatEl = document.getElementById('seat-' + seatId);
-    if (seatEl) seatEl.classList.remove('suggested');
-  });
-  suggestedSeats = [];
-}
-
-function highlightSuggestedSeats(seats) {
-  clearSuggestedSeatHighlights();
-
-  suggestedSeats = seats
-    .map(toVisibleSuggestedSeat)
-    .filter(Boolean)
-    .filter(seatId => !selectedSeats.includes(seatId));
-
-  suggestedSeats.forEach(seatId => {
-    const seatEl = document.getElementById('seat-' + seatId);
-    if (seatEl && !seatEl.classList.contains('booked')) {
-      seatEl.classList.add('suggested');
-    }
-  });
-}
-
-function suggestBetterSeats() {
-  const count = selectedSeats.length;
-
-  if (!count) {
-    showToast('Select seats first to compare grouping.');
-    return;
-  }
-
-  fetch('http://localhost:8080/suggest-seats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ count, trainName: currentBooking.trainName })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.success || !Array.isArray(data.suggested) || !data.suggested.length) {
-      showToast('No better grouping available.');
-      return;
-    }
-
-    highlightSuggestedSeats(data.suggested);
-    showToast('✨ Better seat grouping available');
-  })
-  .catch(() => showToast('Unable to suggest seats right now.'));
-}
-
 function selectSeat(seatId, status) {
   if (status === 'booked') return;
   const selectedIndex = selectedSeats.indexOf(seatId);
@@ -708,12 +713,8 @@ function restoreSeatClass(seatId) {
 }
 
 function updateSeatSummary() {
-  const timeSlot = document.getElementById("timeSlot").value;
   const totalPrice = (currentBooking.basePrice || currentBooking.price || 0) * selectedSeats.length;
-  const finalPreviewPrice = getTimeSlotPrice(totalPrice, timeSlot);
   currentBooking.price = totalPrice;
-  currentBooking.finalPreviewPrice = finalPreviewPrice;
-  currentBooking.timeSlot = timeSlot;
 
   if (!selectedSeats.length) {
     document.getElementById("seatSummary").textContent = "No seats selected";
@@ -721,7 +722,7 @@ function updateSeatSummary() {
     return;
   }
 
-  document.getElementById("seatSummary").innerHTML = `Seats: <strong>${selectedSeats.join(', ')}</strong> · ₹${finalPreviewPrice.toLocaleString('en-IN')}`;
+  document.getElementById("seatSummary").innerHTML = `Seats: <strong>${selectedSeats.join(', ')}</strong> · ₹${totalPrice.toLocaleString('en-IN')}`;
   document.getElementById("proceedBtn").disabled = selectedSeats.length !== passengerCount;
 }
 
@@ -732,9 +733,8 @@ function openPayment() {
   currentBooking.seats = [...selectedSeats];
   currentBooking.seat = selectedSeats[0];
   currentBooking.passengerCount = passengerCount;
-  currentBooking.timeSlot = document.getElementById("timeSlot").value;
-  const today = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
-  document.getElementById("payAmount").textContent = `₹${currentBooking.finalPreviewPrice.toLocaleString('en-IN')}`;
+  const today = formatJourneyDate(currentBooking.travelDate);
+  document.getElementById("payAmount").textContent = `₹${currentBooking.price.toLocaleString('en-IN')}`;
   document.getElementById("payRoute").textContent = `${currentBooking.from} → ${currentBooking.to}`;
   document.getElementById("payTrain").textContent = currentBooking.trainName;
   document.getElementById("paySeat").textContent = currentBooking.seats.join(', ');
@@ -747,7 +747,7 @@ function openPayment() {
 function generateQR() {
   const qrContainer = document.getElementById("qrCode");
   qrContainer.innerHTML = "";
-  const qrData = `upi://pay?pa=metrigotickets@upi&pn=MetriGo&am=${currentBooking.finalPreviewPrice}&tn=${encodeURIComponent(currentBooking.trainName + '-' + currentBooking.seats.join(','))}&cu=INR`;
+  const qrData = `upi://pay?pa=metrigotickets@upi&pn=MetriGo&am=${currentBooking.price}&tn=${encodeURIComponent(currentBooking.trainName + '-' + currentBooking.seats.join(','))}&cu=INR`;
   try {
     qrInstance = new QRCode(qrContainer, { text: qrData, width: 180, height: 180, colorDark: "#0A0F1E", colorLight: "#FFFFFF", correctLevel: QRCode.CorrectLevel.H });
   } catch(e) {
@@ -780,7 +780,7 @@ function confirmPayment() {
   // Send booking to server — server generates the hashed PNR (SHA-256 based).
   // We do NOT generate PNR on the client anymore to ensure uniqueness
   // and prevent manipulation.
-  fetch('http://localhost:8080/save-booking', {
+  apiFetch('/save-booking', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ ...currentBooking, status: 'Confirmed' })
@@ -794,14 +794,17 @@ function confirmPayment() {
       currentBooking.seat = currentBooking.seats[0];
       currentBooking.price = data.finalPrice || currentBooking.price;
 
-      // Mirror to localStorage so check-status.html can also read it
-      const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
-      bookings.push({ ...currentBooking, bookedAt: new Date().toISOString(), status: 'Confirmed' });
-      localStorage.setItem('metrigoBookings', JSON.stringify(bookings));
-
+      currentBooking.travelDate = data.travelDate || currentBooking.travelDate;
       showSuccess(data.pnr);
     } else {
-      showToast('Booking failed. Please try again.');
+      if (data.message && data.message.toLowerCase().includes('already booked')) {
+        showToast('A selected seat was just booked. Refreshing availability…');
+        loadBookedSeats().then(() => renderSeatGrid(currentCoach));
+        document.getElementById('payOverlay').classList.remove('active');
+        document.getElementById('seatOverlay').classList.add('active');
+      } else {
+        showToast(data.message || 'Booking failed. Please try again.');
+      }
       // Re-enable buttons so user can retry
       if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Confirm & Pay`; }
       if (cancelBtn)  { cancelBtn.disabled = false; }
@@ -809,13 +812,10 @@ function confirmPayment() {
     }
   })
   .catch(() => {
-    // Network error — fall back to client-side PNR so the app still works offline
-    const fallbackPNR = 'MG' + Date.now().toString().slice(-8);
-    currentBooking.pnr = fallbackPNR;
-    const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
-    bookings.push({ ...currentBooking, bookedAt: new Date().toISOString(), status: 'Confirmed' });
-    localStorage.setItem('metrigoBookings', JSON.stringify(bookings));
-    showSuccess(fallbackPNR);
+    showToast('Cannot reach the booking server. No booking was created.');
+    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Confirm & Pay`; }
+    if (cancelBtn) { cancelBtn.disabled = false; }
+    document.getElementById("payOverlay").classList.add("active");
   });
 }
 
@@ -830,14 +830,11 @@ function cancelBooking() {
 
   selectedSeats.forEach(restoreSeatClass);
   selectedSeats = [];
-  clearSuggestedSeatHighlights();
   passengerCount = 1;
   currentBooking = {};
 
   // Reset proceed button in seat modal footer
   document.getElementById("passengerCount").value = passengerCount;
-  document.getElementById("timeSlot").value = getCheapestSlot();
-  updateTimeSlotInfo();
   document.getElementById("proceedBtn").disabled = true;
   document.getElementById("seatSummary").textContent = "No seats selected";
 
@@ -855,7 +852,7 @@ function cancelBooking() {
 
 function showSuccess(pnr) {
   document.getElementById("successPNR").textContent = pnr;
-  const today = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const today = formatJourneyDate(currentBooking.travelDate);
   document.getElementById("ticketDetails").innerHTML = `
     <div class="ticket-detail"><div class="ticket-detail-label">From</div><div class="ticket-detail-val">${currentBooking.from}</div></div>
     <div class="ticket-detail"><div class="ticket-detail-label">To</div><div class="ticket-detail-val">${currentBooking.to}</div></div>
@@ -877,7 +874,7 @@ function showToast(msg) {
 }
 
 // Load user info
-fetch("http://localhost:8080/profile").then(r => r.json()).then(d => {
+apiFetch("/profile").then(r => r.json()).then(d => {
   if (d.success) {
     const n = d.data.name || d.data.email.split("@")[0];
     document.getElementById("navInitial").textContent = n[0].toUpperCase();
@@ -887,11 +884,45 @@ fetch("http://localhost:8080/profile").then(r => r.json()).then(d => {
 
 // Allow opening from route search (via URL params)
 const params = new URLSearchParams(window.location.search);
-if (params.get('from') && params.get('to') && params.get('price')) {
+const journeyDateInput = document.getElementById('journeyDate');
+travelDate = params.get('date');
+if (!travelDate) {
+  travelDate = new Date().toLocaleDateString('en-CA');
+}
+if (journeyDateInput) {
+  journeyDateInput.min = new Date().toLocaleDateString('en-CA');
+  journeyDateInput.value = travelDate;
+  journeyDateInput.addEventListener('change', async () => {
+    travelDate = journeyDateInput.value || null;
+    selectedSeats = [];
+    currentBooking = {};
+    const availability = document.getElementById('dateAvailability');
+    if (availability) availability.textContent = travelDate ? 'Checking live seat availability…' : 'Select a date to check live seat availability.';
+    // If the seat modal is open, refresh the current journey for the new date.
+    if (document.getElementById('seatOverlay')?.classList.contains('active')) {
+      closeSeatModal();
+    }
+  });
+}
+if (params.get('from') && params.get('to') && params.get('price') && travelDate) {
   openSeatModal('Metro Express', params.get('from'), params.get('to'), 'CC', parseInt(params.get('price')), params.get('from'), params.get('to'));
+  loadBookedSeats().then(() => renderSeatGrid('C1'));
 }
 
-render(trains);
+async function loadTrainCatalog() {
+  try {
+    const response = await apiFetch('/trains');
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load trains');
+    trains = Array.isArray(data.trains) ? data.trains : [];
+    render(trains);
+  } catch (error) {
+    console.error(error);
+    document.getElementById('trainList').innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--ink-muted)">Unable to load train services right now.</div>`;
+  }
+}
+
+loadTrainCatalog();
 </script>
 </body>
 </html>

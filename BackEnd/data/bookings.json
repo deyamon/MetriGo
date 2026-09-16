@@ -9,7 +9,14 @@
     "price": 20,
     "seat": "C1-6E",
     "status": "Confirmed",
-    "bookedAt": "2026-04-22T03:54:59.809Z"
+    "bookedAt": "2026-04-22T03:54:59.809Z",
+    "seats": [
+      "C1-6E"
+    ],
+    "passengerCount": 1,
+    "basePrice": 20,
+    "travelDate": null,
+    "schemaVersion": 2
   },
   {
     "pnr": "MG30398885",
@@ -21,7 +28,14 @@
     "price": 10,
     "seat": "C1-6E",
     "status": "Confirmed",
-    "bookedAt": "2026-04-22T03:59:58.910Z"
+    "bookedAt": "2026-04-22T03:59:58.910Z",
+    "seats": [
+      "C1-6E"
+    ],
+    "passengerCount": 1,
+    "basePrice": 10,
+    "travelDate": null,
+    "schemaVersion": 2
   },
   {
     "pnr": "MG52716814",
@@ -33,7 +47,14 @@
     "price": 20,
     "seat": "C3-3A",
     "status": "Confirmed",
-    "bookedAt": "2026-04-22T10:11:56.820Z"
+    "bookedAt": "2026-04-22T10:11:56.820Z",
+    "seats": [
+      "C3-3A"
+    ],
+    "passengerCount": 1,
+    "basePrice": 20,
+    "travelDate": null,
+    "schemaVersion": 2
   },
   {
     "pnr": "MG80439253",
@@ -45,7 +66,14 @@
     "price": 20,
     "seat": "C1-1B",
     "status": "Confirmed",
-    "bookedAt": "2026-04-22T17:53:59.266Z"
+    "bookedAt": "2026-04-22T17:53:59.266Z",
+    "seats": [
+      "C1-1B"
+    ],
+    "passengerCount": 1,
+    "basePrice": 20,
+    "travelDate": null,
+    "schemaVersion": 2
   },
   {
     "pnr": "MG09132915",
@@ -57,7 +85,14 @@
     "price": 10,
     "seat": "C1-1B",
     "status": "Confirmed",
-    "bookedAt": "2026-04-27T16:58:52.928Z"
+    "bookedAt": "2026-04-27T16:58:52.928Z",
+    "seats": [
+      "C1-1B"
+    ],
+    "passengerCount": 1,
+    "basePrice": 10,
+    "travelDate": null,
+    "schemaVersion": 2
   },
   {
     "pnr": "MG3AA0D758",
@@ -69,7 +104,14 @@
     "price": 20,
     "seat": "C1-1C",
     "status": "Confirmed",
-    "bookedAt": "2026-04-28T02:00:32.859Z"
+    "bookedAt": "2026-04-28T02:00:32.859Z",
+    "seats": [
+      "C1-1C"
+    ],
+    "passengerCount": 1,
+    "basePrice": 20,
+    "travelDate": null,
+    "schemaVersion": 2
   },
   {
     "pnr": "MGDD53D0E9",
@@ -84,6 +126,10 @@
     ],
     "seat": "C1-1A",
     "status": "Confirmed",
-    "bookedAt": "2026-04-28T04:18:30.071Z"
+    "bookedAt": "2026-04-28T04:18:30.071Z",
+    "passengerCount": 1,
+    "basePrice": 36,
+    "travelDate": null,
+    "schemaVersion": 2
   }
 ]

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="api.js"></script>
 <meta charset="UTF-8">
 <title>MetriGo — Check Status</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,6 +97,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .booking-route { font-size: 14px; font-weight: 600; color: var(--ink); }
 .booking-meta { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
 .booking-pnr-chip { padding: 4px 12px; background: var(--surface); border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.5px; }
+.history-filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.history-filter { padding:7px 15px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); color:var(--ink-soft); font-family:DM Sans,sans-serif; font-size:12px; font-weight:500; cursor:pointer; transition:all .2s; }
+.history-filter:hover { border-color:rgba(26,86,219,.3); color:var(--ink); }
+.history-filter.active { background:var(--accent-light); border-color:rgba(26,86,219,.3); color:var(--accent); }
+.cancel-booking-btn { margin-top:20px; width:100%; height:44px; border-radius:12px; border:1.5px solid rgba(217,48,37,.28); background:#fff; color:var(--danger); font-family:DM Sans,sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; }
+.cancel-booking-btn:hover { background:#FEF1F1; border-color:rgba(217,48,37,.55); }
+.cancel-booking-btn:disabled { opacity:.55; cursor:not-allowed; }
+.cancelled-note { margin-top:20px; padding:12px 14px; border-radius:12px; background:#FEF1F1; color:var(--danger); font-size:12px; border:1px solid rgba(217,48,37,.16); }
 
 .empty-state { text-align: center; padding: 40px; background: white; border-radius: 16px; border: 1px solid var(--border); }
 .empty-icon { font-size: 40px; margin-bottom: 12px; }
@@ -110,6 +119,84 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
   .input-row { flex-direction: column; }
   .info-grid { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ===== MetriGo Responsive UI Polish ===== */
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 10px 20px !important;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .nav-brand { min-height: 40px; }
+  .nav-right { margin-left: auto; }
+  .nav-profile span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-links {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+  .nav-profile-btn, .nav-profile { min-height: 40px; }
+}
+
+@media (max-width: 600px) {
+  .nav-logo-text { font-size: 17px; }
+  .nav-profile { padding-right: 8px; }
+  .nav-profile span { display: none; }
+  .nav-profile-btn { padding-right: 8px; }
+  .hero, .page-header { padding-left: 20px !important; padding-right: 20px !important; }
+  .page-header h1 { font-size: clamp(28px, 8vw, 34px); }
+  .main { padding-left: 16px !important; padding-right: 16px !important; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .navbar { padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links a { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Accessible, consistent focus treatment */
+:focus-visible { outline: 3px solid rgba(26,86,219,.28); outline-offset: 2px; }
+
+
+@media (max-width: 900px) {
+  .main { max-width: 760px; }
+}
+@media (max-width: 600px) {
+  .search-box { padding: 20px; border-radius: 16px; }
+  .input-row { gap: 10px; }
+  .check-btn { width: 100%; justify-content: center; }
+  .result-header { padding: 16px 18px; gap: 10px; flex-wrap: wrap; }
+  .result-body { padding: 20px 18px; }
+  .route-display { gap: 8px; }
+  .route-station-name { font-size: 15px; word-break: break-word; }
+  .route-arrow-icon { width: 32px; height: 32px; }
+  .info-grid { grid-template-columns: 1fr 1fr; }
+  .booking-row { padding: 14px; gap: 10px; }
+  .booking-pnr-chip { padding: 4px 8px; }
+}
+@media (max-width: 380px) {
+  .info-grid { grid-template-columns: 1fr; }
+  .booking-row { align-items: flex-start; }
+  .booking-pnr-chip { display: none; }
+}
+
 </style>
 </head>
 <body>
@@ -160,14 +247,20 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
   <div id="resultArea"></div>
 
   <div class="recent-section">
-    <div class="section-title">Recent Bookings</div>
+    <div class="section-title">Booking History</div>
+    <div class="history-filters">
+      <button class="history-filter active" data-filter="all" onclick="setHistoryFilter('all', this)">All</button>
+      <button class="history-filter" data-filter="upcoming" onclick="setHistoryFilter('upcoming', this)">Upcoming</button>
+      <button class="history-filter" data-filter="completed" onclick="setHistoryFilter('completed', this)">Completed</button>
+      <button class="history-filter" data-filter="cancelled" onclick="setHistoryFilter('cancelled', this)">Cancelled</button>
+    </div>
     <div id="recentBookings"></div>
   </div>
 </main>
 
 <script>
 function loadUserInfo() {
-  fetch("http://localhost:8080/profile").then(r => r.json()).then(d => {
+  apiFetch("/profile").then(r => r.json()).then(d => {
     if (d.success) {
       const n = d.data.name || d.data.email.split("@")[0];
       document.getElementById("navInitial").textContent = n[0].toUpperCase();
@@ -187,25 +280,26 @@ function checkPNR() {
     return;
   }
 
-  // Try server first, then localStorage
-  fetch(`http://localhost:8080/check-pnr?pnr=${encodeURIComponent(pnr)}`)
+  apiFetch(`/check-pnr?pnr=${encodeURIComponent(pnr)}`)
     .then(r => r.json())
     .then(data => {
-      if (data.success) renderResult(data.booking);
-      else searchLocalStorage(pnr);
+      if (data.success) {
+        renderResult(data.booking);
+        return;
+      }
+      errorBox.textContent = data.message || "No booking found for this PNR. Please check the number and try again.";
+      errorBox.style.display = "block";
+      document.getElementById("resultArea").innerHTML = "";
     })
-    .catch(() => searchLocalStorage(pnr));
+    .catch(() => {
+      errorBox.textContent = "Unable to contact the booking server. Please try again.";
+      errorBox.style.display = "block";
+    });
 }
 
-function searchLocalStorage(pnr) {
-  const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
-  const booking = bookings.find(b => b.pnr === pnr);
-  if (booking) renderResult(booking);
-  else {
-    document.getElementById("errorBox").textContent = "No booking found for this PNR. Please check the number and try again.";
-    document.getElementById("errorBox").style.display = "block";
-    document.getElementById("resultArea").innerHTML = "";
-  }
+function isWithinCancellationWindow(b) {
+  const bookedAt = Date.parse(b.bookedAt || '');
+  return Number.isFinite(bookedAt) && (Date.now() - bookedAt) <= 2 * 60 * 60 * 1000;
 }
 
 function renderResult(b) {
@@ -240,6 +334,7 @@ function renderResult(b) {
           <div class="info-item"><div class="info-label">Class</div><div class="info-val">${b.cls || 'N/A'}</div></div>
           <div class="info-item"><div class="info-label">Fare Paid</div><div class="info-val">₹${(b.price||0).toLocaleString('en-IN')}</div></div>
           <div class="info-item"><div class="info-label">Booked On</div><div class="info-val">${bookedDate}</div></div>
+          <div class="info-item"><div class="info-label">Travel Date</div><div class="info-val">${b.travelDate || 'N/A'}</div></div>
           <div class="info-item"><div class="info-label">Status</div><div class="info-val" style="color:var(--success)">${b.status || 'Confirmed'}</div></div>
         </div>
         <div style="padding-top:16px;border-top:1px solid var(--border)">
@@ -257,26 +352,94 @@ function renderResult(b) {
             </div>
           </div>
         </div>
+        ${b.status === 'Confirmed' && (!b.travelDate || b.travelDate >= new Date().toISOString().slice(0,10)) && isWithinCancellationWindow(b)
+          ? `<button class="cancel-booking-btn" id="cancelBookingBtn" onclick="cancelSavedBooking('${b.pnr}')">Cancel Booking</button>`
+          : (b.status === 'Cancelled' ? `<div class="cancelled-note">This booking was cancelled${b.cancelledAt ? ` on ${new Date(b.cancelledAt).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}` : ''}.</div>` : '')}
       </div>
     </div>`;
 }
 
-function loadRecent() {
-  const bookings = JSON.parse(localStorage.getItem('metrigoBookings') || '[]');
-  const container = document.getElementById("recentBookings");
-  if (!bookings.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🎫</div><div class="empty-text">No recent bookings found. Book a ticket to see it here.</div></div>`;
+let bookingHistory = [];
+let historyFilter = 'all';
+
+function setHistoryFilter(filter, button) {
+  historyFilter = filter;
+  document.querySelectorAll('.history-filter').forEach(b => b.classList.remove('active'));
+  button.classList.add('active');
+  renderRecentBookings();
+}
+
+function isUpcomingBooking(b) {
+  return b.status === 'Confirmed' && (!b.travelDate || b.travelDate >= new Date().toISOString().slice(0,10));
+}
+
+function renderRecentBookings() {
+  const container = document.getElementById('recentBookings');
+  let visible = bookingHistory;
+  if (historyFilter === 'upcoming') visible = bookingHistory.filter(isUpcomingBooking);
+  if (historyFilter === 'completed') visible = bookingHistory.filter(b => b.status !== 'Cancelled' && b.travelDate && b.travelDate < new Date().toISOString().slice(0,10));
+  if (historyFilter === 'cancelled') visible = bookingHistory.filter(b => b.status === 'Cancelled');
+
+  if (!visible.length) {
+    const label = historyFilter === 'cancelled' ? 'No cancelled bookings.' : historyFilter === 'completed' ? 'No completed journeys yet.' : historyFilter === 'upcoming' ? 'No upcoming bookings.' : 'No bookings found. Book a ticket to see it here.';
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🎫</div><div class="empty-text">${label}</div></div>`;
     return;
   }
-  container.innerHTML = [...bookings].reverse().slice(0,5).map(b => `
-    <div class="booking-row" onclick="document.getElementById('pnrInput').value='${b.pnr}';checkPNR()">
+
+  container.innerHTML = visible.map(b => {
+    const statusClass = b.status === 'Cancelled' ? 'status-cancelled' : (isUpcomingBooking(b) ? 'status-confirmed' : 'status-waiting');
+    const seats = (b.seats?.join(', ') || b.seat || '');
+    return `<div class="booking-row" onclick="document.getElementById('pnrInput').value='${b.pnr}';checkPNR()">
       <div class="booking-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
       <div class="booking-info">
         <div class="booking-route">${b.from} → ${b.to}</div>
-        <div class="booking-meta">${b.trainName || 'Metro'} · ${b.seat || ''} · ${b.cls || ''} Class</div>
+        <div class="booking-meta">${b.trainName || 'Metro'} · ${b.travelDate || 'Travel date unavailable'} · ${seats}</div>
       </div>
-      <div class="booking-pnr-chip">${b.pnr}</div>
-    </div>`).join('');
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <div class="status-badge ${statusClass}">${b.status || 'Confirmed'}</div>
+        <div class="booking-pnr-chip">${b.pnr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadRecent() {
+  const container = document.getElementById('recentBookings');
+  apiFetch('/my-bookings')
+    .then(r => r.json())
+    .then(data => {
+      bookingHistory = data.success ? data.bookings : [];
+      renderRecentBookings();
+    })
+    .catch(() => {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">Unable to load booking history right now.</div></div>`;
+    });
+}
+
+function cancelSavedBooking(pnr) {
+  if (!confirm(`Cancel booking ${pnr}? The seats will be released for other passengers.`)) return;
+
+  const button = document.getElementById('cancelBookingBtn');
+  if (button) { button.disabled = true; button.textContent = 'Cancelling…'; }
+
+  apiFetch('/cancel-booking', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pnr })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) throw new Error(data.message || 'Unable to cancel booking');
+    bookingHistory = bookingHistory.map(b => b.pnr === pnr ? data.booking : b);
+    renderResult(data.booking);
+    renderRecentBookings();
+  })
+  .catch(error => {
+    if (button) { button.disabled = false; button.textContent = 'Cancel Booking'; }
+    const errorBox = document.getElementById('errorBox');
+    errorBox.textContent = error.message || 'Unable to cancel booking. Please try again.';
+    errorBox.style.display = 'block';
+  });
 }
 
 loadUserInfo();

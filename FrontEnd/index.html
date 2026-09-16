@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="api.js"></script>
 <meta charset="UTF-8">
 <title>MetriGo — Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -649,6 +650,83 @@ footer {
   .section, .map-section, .ann-section { padding-left: 20px; padding-right: 20px; }
   .ann-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ===== MetriGo Responsive UI Polish ===== */
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 10px 20px !important;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .nav-brand { min-height: 40px; }
+  .nav-right { margin-left: auto; }
+  .nav-profile span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-links {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+  .nav-profile-btn, .nav-profile { min-height: 40px; }
+}
+
+@media (max-width: 600px) {
+  .nav-logo-text { font-size: 17px; }
+  .nav-profile { padding-right: 8px; }
+  .nav-profile span { display: none; }
+  .nav-profile-btn { padding-right: 8px; }
+  .hero, .page-header { padding-left: 20px !important; padding-right: 20px !important; }
+  .page-header h1 { font-size: clamp(28px, 8vw, 34px); }
+  .main { padding-left: 16px !important; padding-right: 16px !important; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .navbar { padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links a { padding-left: 10px; padding-right: 10px; }
+}
+
+/* Accessible, consistent focus treatment */
+:focus-visible { outline: 3px solid rgba(26,86,219,.28); outline-offset: 2px; }
+
+
+@media (max-width: 900px) {
+  .hero { padding-top: 48px; padding-bottom: 88px; min-height: 620px; }
+  .hero-content { max-width: 100%; }
+  .search-card { width: 100%; max-width: none; }
+  .search-field { min-width: 0; flex: 1 1 calc(50% - 30px); }
+  .search-btn { flex: 1 1 140px; justify-content: center; }
+  .section, .map-section, .ann-section { padding-left: 20px !important; padding-right: 20px !important; }
+  #map { width: 100% !important; height: min(58vh, 460px) !important; }
+}
+@media (max-width: 600px) {
+  .hero { padding-top: 34px; padding-bottom: 72px; min-height: auto; }
+  .hero h1 { font-size: clamp(30px, 9vw, 42px); }
+  .hero-sub { font-size: 14px; margin-bottom: 24px; }
+  .search-card { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 14px; border-radius: 16px; }
+  .search-field, .search-btn { min-width: 0; width: 100%; }
+  .swap-btn { justify-self: center; width: 40px; height: 40px; }
+  #datePicker { width: 100%; min-width: 0; }
+  .actions-grid { grid-template-columns: 1fr !important; }
+  #resultBox { padding: 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -851,11 +929,11 @@ function closePanel() {
 }
 
 function logout() {
-  window.location.href = "http://localhost:8080/logout";
+  window.location.href = "/api/logout";
 }
 
 function loadUserInfo() {
-  fetch("http://localhost:8080/profile")
+  apiFetch("/profile")
     .then(r => {
       if (r.status === 401) window.location.href = "login.html";
       return r.json();
@@ -889,7 +967,7 @@ flatpickr("#datePicker", {
 });
 
 // Load stations
-fetch("http://localhost:8080/stations")
+apiFetch("/stations")
   .then(r => r.json())
   .then(stations => {
     const fl = document.getElementById("fromInput");
@@ -932,15 +1010,17 @@ let currentLine = null;
 document.getElementById("searchBtn").addEventListener("click", () => {
   const from = document.getElementById("from").value.trim();
   const to = document.getElementById("to").value.trim();
+  const selectedDate = document.getElementById("datePicker")._flatpickr?.selectedDates?.[0];
 
   if (!from || !to) { alert("Please enter both From and To stations."); return; }
   if (from.toLowerCase() === to.toLowerCase()) { alert("Source and destination cannot be the same."); return; }
+  if (!selectedDate) { alert("Please select a travel date."); return; }
 
   const rb = document.getElementById("resultBox");
   rb.style.display = "block";
   rb.innerHTML = `<div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.6)"><div style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div> Finding shortest path…</div>`;
 
-  fetch("http://localhost:8080/shortest-path", {
+  apiFetch("/shortest-path", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ from, to })
@@ -960,7 +1040,7 @@ document.getElementById("searchBtn").addEventListener("click", () => {
       </div>
       <div class="result-path"><strong style="color:rgba(255,255,255,0.8)">Route:</strong> ${data.path.join(" → ")}</div>
       <div style="margin-top:14px">
-        <a href="bookings.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&price=${data.fare}" style="display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;background:#1A56DB;color:white;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;">
+        <a href="bookings.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&price=${data.fare}&date=${selectedDate.toISOString().slice(0,10)}" style="display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;background:#1A56DB;color:white;border-radius:10px;font-size:13px;font-weight:500;text-decoration:none;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
           Book Ticket for this Route →
         </a>

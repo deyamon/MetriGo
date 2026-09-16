@@ -1,0 +1,106 @@
+[
+  {
+    "name": "Shatabdi Express",
+    "from": "New Delhi",
+    "to": "Kanpur",
+    "duration": "5h 30m",
+    "route": "delhi-kanpur",
+    "departureTime": "06:00",
+    "classes": [
+      {
+        "type": "CC",
+        "price": 1200,
+        "seats": 45,
+        "tatkal": true
+      },
+      {
+        "type": "EC",
+        "price": 2200,
+        "seats": 12,
+        "tatkal": true
+      }
+    ]
+  },
+  {
+    "name": "Vande Bharat Express",
+    "from": "New Delhi",
+    "to": "Kanpur",
+    "duration": "4h 10m",
+    "route": "delhi-kanpur",
+    "departureTime": "08:00",
+    "classes": [
+      {
+        "type": "CC",
+        "price": 1500,
+        "seats": 60,
+        "tatkal": false
+      },
+      {
+        "type": "EC",
+        "price": 2800,
+        "seats": 5,
+        "tatkal": true
+      }
+    ]
+  },
+  {
+    "name": "Rajdhani Express",
+    "from": "Delhi",
+    "to": "Mumbai",
+    "duration": "16h 00m",
+    "route": "delhi-mumbai",
+    "departureTime": "17:30",
+    "classes": [
+      {
+        "type": "3A",
+        "price": 2500,
+        "seats": 20,
+        "tatkal": true
+      },
+      {
+        "type": "2A",
+        "price": 3500,
+        "seats": 10,
+        "tatkal": true
+      }
+    ]
+  },
+  {
+    "name": "Duronto Express",
+    "from": "Delhi",
+    "to": "Mumbai",
+    "duration": "14h 30m",
+    "route": "delhi-mumbai",
+    "departureTime": "22:00",
+    "classes": [
+      {
+        "type": "SL",
+        "price": 900,
+        "seats": 80,
+        "tatkal": false
+      },
+      {
+        "type": "3A",
+        "price": 2200,
+        "seats": 30,
+        "tatkal": true
+      }
+    ]
+  },
+  {
+    "name": "Metro Express",
+    "from": "Metro Network",
+    "to": "Metro Network",
+    "duration": "\u2014",
+    "route": "metro",
+    "departureTime": "12:00",
+    "classes": [
+      {
+        "type": "CC",
+        "price": 20,
+        "seats": 360,
+        "tatkal": false
+      }
+    ]
+  }
+]
